@@ -1,0 +1,158 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+
+<head>
+<% orbi_flow_head() %>
+<script language="javascript" type="text/javascript" src="script/funcs.js"></script>
+<% hijack_language() %>
+<% deleteFiles("/tmp/ping_result_error", "/tmp/ping_ip_result_error", "/tmp/ping_gateway_result_error")%>
+<% deleteFiles("/tmp/ping_result", "/tmp/wget_file_result","/tmp/mobile_ping_result") %>
+</head>
+
+<body onload="loadvalue()">
+<% form_submit("apply", "BRS_04_applySettings.html", "hijack_lte") %>
+
+<script>
+var username = "<% cfg_get("wan2.user_name") %>";
+var password = "<% cfg_get("wan2.password") %>";
+var apn = "<% cfg_get("wan2.apn") %>";
+/* var authtype = "<% cfg_get("wan2.authtype") %>"; */
+
+function loadvalue()
+{
+	var forms = document.getElementsByTagName("form");
+	var cf = forms[0];
+	if(username !="")
+	{
+		cf.lte_name.value = username
+		$$("#login_name_div").addClass('active');
+	}
+	if(password !="")
+	{
+		cf.lte_passwd.value = password
+		$$("#passwd_div").addClass('active');
+	}
+	if(apn !="")
+	{
+		cf.lte_apn.value = apn
+		$$("#apn_div").addClass('active');
+	}
+
+	/* if(authtype == "0" || authtype == "")
+	{
+		authtype = "0";
+		var elen = $$("#auth_type_none");
+	}	
+	else if(authtype == "1")
+		var elen = $$("#auth_type_pap");
+	else if(authtype == "2")
+		var elen = $$("#auth_type_chap");
+	else
+		var elen = $$("#auth_type_chapv2"); */
+
+	/* 	var selectionWrapper = elen.parent().parent();
+		selectionWrapper.find('a.active').removeClass("active");
+		elen.addClass("active");
+		$$("#show_span").html(elen.text());
+	cf.hidden_auth_type.value=authtype; */
+}
+
+function checklte()
+{
+	var forms = document.getElementsByTagName("form");
+        var cf = forms[0];
+	
+	var lte_name = document.getElementById("lte_name");
+	var lte_passwd = document.getElementById("lte_password");
+
+	if(lte_name.value != "")
+	{
+		if(lte_name.value.length>64)
+		{
+			alert(bh_ISP_namePasswd_error);
+			return false;
+		}
+	}
+
+	var i;
+	if(lte_passwd.value.length!=0)
+	{
+		for(i=0;i<lte_passwd.value.length;i++)
+		{
+			if(isValidChar(lte_passwd.value.charCodeAt(i))==false)
+			{
+				alert(bh_password_error);
+				return false;
+			}
+		}
+	}
+
+
+	return true;
+}
+/* function sel_opt(type)
+{
+	var form=document.forms[0];
+		form.hidden_auth_type.value=String(type);
+} */
+</script>
+<input type="hidden" name="hidden_auth_type" value="0"/>
+<div id="container">
+	<div class="dialog-content">
+		<!-- Orbi Setup WiFi-->
+		<div id="card-orbi-setup-wifi" class="install-card clearfix">
+			<img class="netgear-logo" src="images/netgear.png">
+
+			<div class="desc-title"><script>document.write("APN Settings");</script></div>
+			<div class="desc-text"><script>document.write("Please connect with your Internet service provider to get details");</script></div>
+
+			<div class="input-wrapper input-text-box-two">
+					<div class="input-title" id="apn_div">APN</script></div>
+					<input type="text" id="lte_apn" maxlength="64" align="right" name="lte_apn" autocomplete="off" />
+				</div>
+
+			<div class="input-wrapper input-text-box-one">
+				<div class="input-title" id="login_name_div"><script>document.write(bh_pppoe_login_name);</script></div>
+				<input type="text" id="lte_name" maxlength="64" align="right" name="lte_name" autocomplete="off"/>
+			</div>
+
+			<div class="input-wrapper input-text-box-two">
+				<div class="input-title" id="passwd_div"><script>document.write(bh_ddns_passwd);</script></div>
+				<input type="text" id="lte_password" maxlength="64" align="right" name="lte_passwd" autocomplete="off" />
+			</div>
+			
+			<!-- 
+
+			<div class="input-wrapper " style="padding-top:15px">
+					<div class="input-title ddl-title"></div>
+					<div class="dropdown">
+						<input type="button" id="sec-question-one" data-target="#sec-question-one sec-question-one" class="dropdown-menu btn btn-default dropdown-toggle" data-toggle="dropdown" aria-controls="sec-question-one" style="z-index:10000000">
+							<span id="show_span"><script>document.write(bh_type_auth);</script></span>
+							<img class="ddl-caret" src="images/caret.png">
+						</input>
+						<ul class="dropdown-menu sec-question-one" role="menu" aria-labelledby="sec-question-one">
+							<script>
+							document.write('<li role="presentation" onclick="sel_opt(0);"><a role="menuitem" tabindex="-1" href="#" id="auth_type_none" class="waves-effect">'+bh_type_auth_none+'</a></li>');
+							document.write('<li role="presentation" onclick="sel_opt(1);"><a role="menuitem" tabindex="-1" href="#"  id="auth_type_pap" class="waves-effect">'+bh_type_auth_pap+'</a></li>');
+							document.write('<li role="presentation" onclick="sel_opt(2);"><a role="menuitem" tabindex="-1" href="#"  id="auth_type_chap" class="waves-effect">'+bh_type_auth_chap+'</a></li>');
+							document.write('<li role="presentation" onclick="sel_opt(3);"><a role="menuitem" tabindex="-1" href="#"  id="auth_type_chapv2" class="waves-effect">'+bh_type_auth_chapv2+'</a></li>');
+							</script>
+						</ul>
+					</div>
+				</div> -->
+						
+
+			
+
+			<button class="waves-effect waves-light btn button-nav" onclick="return checklte();">
+				<span><script>document.write(bh_orbi_next_mark);</script></span>
+			</button>
+
+          </div>
+	</div>
+</div>
+
+</form>
+</body>
+
+</html>

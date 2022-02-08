@@ -1,0 +1,13 @@
+<html>
+<head>
+</head>
+<script>
+var mandate_sso_flag="<% cfg_get("mandate_SSO") %>";
+if(mandate_sso_flag=="1")
+	top.location.href="/BRS_check_sso.html";
+else
+	top.location.href="/check_sso_status.htm";
+</script>
+<body>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<% http_header("style/form.css", "/funcs.js") %>
+<% nohelp_header("lte_upgrade_waiting.htm", "write_lte") %>
+<% hijack_language() %>
+<div class="page_title"><script>printText(bh_wait_upg_head, "$wait_upg_head");</script></div>
+<div id="main" class="main">
+<script>
+<% check_version()  %>
+<% save_timestamp("download_image", "download_language", "download_all", "download_green", "download_language_image", "download_green_language", "download_green_image") %>
+var ts='<% cfg_get("download_image") %>';
+var is_in_cd_less = isCDLESS();
+var ver =  "<% cat_file("/tmp/auto_mobile_version") %>";
+//var new_ver =  "Update_EG18EAPAR01A07-R01A06.zip";
+var str = ver.split("-");
+var new_ver = str[1].replace(".zip","");
+var cur_ver = str[0].slice(15);
+function clickYes()
+{
+        var cf=document.forms[0];
+		top.topframe.location.href="top_nochange.html";
+	/* 	cf.submit_flag.value="download_language";
+		cf.action="/func.cgi?/AUTO_download_language.htm timestamp="+ts; */
+		cf.submit();
+	
+	
+
+}
+
+function clickNo()
+{
+	document.getElementById("pls_wait_div").style.display="block";
+	document.getElementsByTagName("table")[0].style.display="none";
+	if(top.topframe)
+		top.topframe.location.href="/top.html";
+
+	if(top.hidden_upgrade)  //if top.hidden_upgrade exits, top is CheckNewFirmware.htm
+		close_top_window();
+	else if ( is_in_cd_less || isWIZARD() )
+		toInternet();
+	else	
+		this.location.href = "/UPG_upgrade.htm?id=lte";
+}
+
+ function loadvalue()
+{
+
+    /*     if( updateFirmware == 1 ){
+		document.getElementById("cur_firm").style.display="";
+		document.getElementById("new_firm").style.display="";
+	}
+	else
+	{
+		document.getElementById("cur_firm").style.display="none";
+		document.getElementById("new_firm").style.display="none";
+	} */
+
+} 
+</script>
+<% table_header() %>
+$bluebar
+
+<TR>
+	<TD nowrap colspan=2><B><script>printText(bh_wait_new_version, "$wait_new_version");</script></B><BR><BR></TD>
+</TR>
+<TR id=cur_firm><TD nowrap><B>$current_firmware:</B></TD><TD><script>document.write(cur_ver);</script></TD></TR>
+<TR id=new_firm><TD nowrap><b>$new_firmware:</B></TD><TD><script>document.write(new_ver);</script></TD></TR>
+<TR><TD>&nbsp;</TD><TD></TD></TR>
+
+$bluebar
+<TR>
+	<TD nowrap colspan=2 align=center>
+	<script>
+		var no_mark = getText(bh_no_mark, "$no_mark");
+		var yes_mark = getText(bh_yes_mark, "$yes_mark");
+		var master="<% cfg_get("http_loginname") %>";
+
+		if(master=="admin" ){
+			document.write('<input class="short_common_bt" type="button" name="Yes" value="'+yes_mark+'" onclick="clickYes();">&nbsp;');
+			document.write('<input class="short_common_bt" type="button" name="No" value="'+no_mark+'" onclick="clickNo();">');
+		}
+		else
+		{
+			document.write('<input class="short_common1_bt" type="button" name="Yes" value="'+yes_mark+'" disabled>&nbsp;');
+			document.write('<input class="short_common_bt" type="button" name="No" value="'+no_mark+'" onclick="clickNo();">');
+		}
+	</script>
+	</TD>
+</TR>
+</TABLE>
+<div id="pls_wait_div" style="display:none">
+	<div align="center"><br /><br /><b>$wizard_pls_wait</b><br /><br /></div>
+	<div class="waiting_img_div" align="center"><img src="image/wait30.gif" /></div>
+</div>
+</div>
+
+</FORM>
+</BODY>
+</HTML>

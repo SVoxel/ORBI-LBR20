@@ -1,0 +1,379 @@
+#!/bin/sh
+
+# script responsible for failover between ethernet and mobile(X-G)
+
+CONFIG="/bin/config"
+wtime=180
+
+print_with_prefix()
+{
+	prefix="[Failover_Fallback]"
+	echo "$prefix $1" >/dev/console
+}
+
+eth_check_port()
+{
+	port_status=`cat /tmp/port_status`
+	[ "x$port_status" != "x1" ] && return 1 || return 0
+}
+
+eth_static_discover()
+{
+	# ETH STATIC Discover and Get Ethernet DNS Server IP
+	print_with_prefix "Ethernet STATIC Discover--wan_proto is static."
+	[ "x$($CONFIG get wan_type)" = "xmobile" ] && {
+		print_with_prefix "Start Ethernet static Discover."
+		wan_ipaddr=$($CONFIG get wan_ipaddr)
+		wan_netmask=$($CONFIG get wan_netmask)
+		# Spec only requires two DNS servers, GUI allows three DNS servers.
+		# Just follow Spec for now
+		wan_ether_dns1=$($CONFIG get wan_ether_dns1)
+		wan_ether_dns2=$($CONFIG get wan_ether_dns2)
+
+		# really need to assign IP address every time?
+		ifconfig brwan $wan_ipaddr netmask $wan_netmask
+		test -n "$wan_ether_dns1" && echo "nameserver $wan_ether_dns1" >/tmp/failover_resolv.conf
+		test -n "$wan_ether_dns2" && echo "nameserver $wan_ether_dns2" >>/tmp/failover_resolv.conf
+	}
+}
+
+eth_dhcp_discover()
+{
+	# ETH DHCP Discover and Get Ethernet DNS Server IP
+	print_with_prefix "Ethernet DHCP Discover--wan_proto is dhcp."
+	[ "x$($CONFIG get wan_type)" = "xmobile" ] && {
+		print_with_prefix "Start Ethernet DHCP Discover."
+		pkill -f "udhcpc -b -i brwan"
+		rm /tmp/failover_resolv.conf
+		if [ $vlan_type -eq 1 -a $enable_vlan -eq 1 ]; then
+
+			print_with_prefix "************ orange DHCP start *************"
+
+			#failover_wired_proto is introduced when implmenting failover for 3G/4G dongles.
+			#However, LBR/RBR routers don't need to support 3G/4G dongles. This config item is confusing.
+			#Do we need still this config item? I think we need another config item to judge if France
+			#Orange DHCP is enabled or not instead of "failover_wired_proto"
+			if [ "x$failover_wired_proto" = "xorange_dhcp" ]; then
+				udhcpc -b -i brwan -h /tmp/dhcp_name.conf  -O -A $ORG_LOGIN -s /usr/share/udhcpc/failover.script
+			else
+				udhcpc -b -i brwan -h /tmp/dhcp_name.conf -r 0.0.0.0 -N 0.0.0.0 -s /usr/share/udhcpc/failover.script
+			fi
+
+			print_with_prefix "************ orange DHCP end ***************"
+		else
+			udhcpc -b -i brwan -h /tmp/dhcp_name.conf -r 0.0.0.0 -N 0.0.0.0 -s /usr/share/udhcpc/failover.script
+		fi
+	}
+}
+
+eth_pppoe_discover()
+{
+	# ETH PPPoE Discover and Get Ethernet DNS Server IP
+	print_with_prefix "Ethernet PPPoE Discover--wan_proto is pppoe."
+	[ "x$($CONFIG get wan_type)" = "xmobile" ] && {
+		print_with_prefix "Start Ethernet PPPoE Discover."
+		pkill -f "pppd call"
+		rm /tmp/failover_resolv.conf
+		pppd call dial-provider updetach nodefaultroute failover
+	}
+}
+
+eth_pptp_discover()
+{
+	# ETH PPTP Discover and Get Ethernet DNS Server IP
+	print_with_prefix "Ethernet PPTP Discover--wan_proto is pptp."
+	[ "x$($CONFIG get wan_type)" = "xmobile" ] && {
+		print_with_prefix "Start Ethernet PPTP Discover."
+		pkill -f "pppd call"
+		pkill -f "udhcpc -b -i brwan"
+		rm /tmp/failover_resolv.conf
+		iptables -I INPUT 1 -p tcp --sport 1723 -j ACCEPT
+		modprobe pptp
+		udhcpc -b -i brwan -h /tmp/dhcp_name.conf -r 0.0.0.0 -N 0.0.0.0 -s /usr/share/udhcpc/failover.script
+	}
+}
+
+eth_l2tp_discover()
+{
+	# ETH L2TP Discover and Get Ethernet DNS Server IP
+	print_with_prefix "Ethernet L2TP Discover--wan_proto is l2tp."
+	[ "x$($CONFIG get wan_type)" = "xmobile" ] && {
+		print_with_prefix "Start Ethernet L2TP Discover."
+		pkill -f "pppd call"
+		pkill -f "udhcpc -b -i brwan"
+		rm /tmp/failover_resolv.conf
+		iptables -I INPUT 1 -p udp --sport 1701 -j ACCEPT
+		udhcpc -b -i brwan -h /tmp/dhcp_name.conf -r 0.0.0.0 -N 0.0.0.0 -s /usr/share/udhcpc/failover.script
+	}
+}
+
+get_pri_sec_dns()
+{
+	i=0
+
+	if [ "x$($CONFIG get wan_type)" = "xmobile" ]; then
+		#sleep some time before we get DNS server if we send discover just now
+		sleep 10
+		RESOLV_CONF="/tmp/failover_resolv.conf"
+	else
+		RESOLV_CONF="/tmp/resolv.conf"
+	fi
+
+	while read line
+	do
+		dns_tmp=`echo $line | awk  '$1 == "nameserver" {print $2}'`
+		[ -z "${dns_tmp}" ] && continue
+
+		[ "x$i" = "x0" ] && dns_0=${dns_tmp} && print_with_prefix "Primary DNS Server IP=${dns_0}."	#Primary DNS Server IP
+		[ "x$i" = "x1" ] && dns_1=${dns_tmp} && print_with_prefix "Secondary DNS Server IP=${dns_1}." && break	#Secondary DNS Server IP
+
+		i=$((i+1))
+
+	done <${RESOLV_CONF}
+
+	dns_2="8.8.8.8"	
+}
+
+get_gw() #1 wan_proto
+{
+	case "$wan_proto" in
+		static)
+			gw=$($CONFIG get wan_gateway)
+			;;
+		dhcp)
+			gw=$($CONFIG get wan_dhcp_gateway)
+			;;
+		*)
+			;;
+	esac	
+	echo $gw
+}
+
+del_pptp_l2tp_fw_rules() #$1 wan_proto
+{
+	wan_type=$($CONFIG get wan_type)
+	if [ "x$wan_type“ = ”xmobile" ]; then
+		if [ "$1" = "pptp" ]; then
+			iptables -D INPUT -p tcp --sport 1723 -j ACCEPT
+		elif [ "$1" = "l2tp" ]; then
+			iptables -D INPUT -p udp --sport 1701 -j ACCEPT
+		fi
+	fi
+}
+
+query_one_domain()
+{
+	print_with_prefix "Query $1 using server $2"
+
+	fail_flag=0
+
+	test -z "$2" && fail_flag=1
+
+	wan_proto=$($CONFIG get wan_proto)
+
+	if [ "x$wan_proto" = "xdhcp" -o "x$wan_proto" = "xstatic" ]; then
+		dev=$($CONFIG get dgc_netif_wan_if)
+	else 
+		dev=$($CONFIG get dgc_netif_ppp_if)
+	fi
+	ifconfig $dev | grep -q RUNNING
+	[ "$?" != "0" ] && fail_flag=1
+	# check if there is IPv4 address
+	ifconfig $dev | grep -q "inet addr"
+	[ "$?" != "0" ] && fail_flag=1
+
+	if [ "$fail_flag" = "1" ]; then
+		echo >/tmp/failover_lookup
+		return 1
+	fi
+
+	iptables -I INPUT -p udp --sport 53 -j ACCEPT
+	iptables -I OUTPUT -p udp --dport 53 -j ACCEPT
+
+	gw=$(get_gw $wan_proto)
+
+	if [ "x$gw" = "x" ]; then
+		route add -net $2 netmask 255.255.255.255 dev $dev
+	else
+		route add -net $2 netmask 255.255.255.255 dev $dev gw $gw
+	fi
+
+	dig @$2 -4 +short +time=5 +tries=1 $1  >/tmp/failover_lookup
+	[ "$?" != "0" ] && echo >/tmp/failover_lookup
+
+	iptables -D INPUT -p udp --sport 53 -j ACCEPT
+	iptables -D OUTPUT -p udp --dport 53 -j ACCEPT
+
+	if [ "x$gw" = "x" ]; then
+		route del -net $2 netmask 255.255.255.255 dev $dev
+	else
+		route del -net $2 netmask 255.255.255.255 dev $dev gw $gw
+	fi
+}
+
+query_dns() 
+{
+	success=0
+	wan_proto=`$CONFIG get wan_proto`
+	case "$wan_proto" in
+		static)
+			#Do Ethernet static Discover
+			eth_static_discover
+			;;
+		dhcp)
+			#Do Ethernet DHCP Discover
+			eth_dhcp_discover
+			;;
+		pppoe)
+			eth_pppoe_discover
+			;;
+		pptp)
+			eth_pptp_discover
+			;;
+		l2tp)
+			eth_l2tp_discover
+			;;
+		*)
+			;;
+	esac
+
+	#Get Primary & Secondary DNS Server IP
+	get_pri_sec_dns
+
+	#Start Query DNS
+	i=1
+	while [ $i -lt 4 ]
+	do
+		print_with_prefix "In $i query dns cycle."
+		j=0
+		while [ $j -lt 3 ]
+		do
+			eval dns_current=\${dns_$j}
+			case "$j" in
+				0|1)
+					query_one_domain netgear.com $dns_current
+					;;
+				2)
+					query_one_domain apple.com $dns_current
+					;;
+				*)
+					;;
+			esac
+
+			grep -q -v -e "^$" /tmp/failover_lookup  && print_with_prefix "Query Success using server ${dns_current}. Yeah~" && success=1 && break
+			print_with_prefix "Query Fail using server ${dns_current}. Ooooops~"
+			j=$((j+1))
+		done
+		[ "x$i" = "x0" -a "x$($CONFIG get wan_type)" = "xmobile" ] && break
+		i=$((i+1))
+	done
+
+	del_pptp_l2tp_fw_rules $wan_proto
+	if [ "$success" = "1" ]; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+
+check_proto()
+{
+	enable_demand=0
+
+	wan_proto=$($CONFIG get wan_proto)
+	failover_wired_proto=$($CONFIG get failover_wired_proto)
+
+	case "$wan_proto" in
+		"pppoe")
+			if [ "x$failover_wired_proto" = "xorange_pppoe" ]; then
+				enable_demand=$($CONFIG get wan_orange_pppoe_demand)
+			else
+				enable_demand=$($CONFIG get wan_pppoe_demand)
+			fi
+			;;	
+		"pptp")
+			enable_demand=$($CONFIG get wan_pptp_demand)
+			;;
+		"l2tp")
+			enable_demand=$($CONFIG get wan_l2tp_demand)
+			;;
+		*)
+			;;
+	esac
+
+	# Don't start failover daemon if "dial on demand" or "manually connect" is enabled
+	if [ "$enable_demand" = "1" -o "$enable_demand" = "2" ]; then
+		print_with_prefix "Don't start failover daemon because \"dial on demand\" or \"manually connect\"($enable_demand) is enabled"
+		exit 1
+	fi
+}
+
+
+set_global_vars()
+{
+	case "$wan_proto" in
+		"dhcp")
+			enable_vlan=$($CONFIG get enable_vlan)
+			vlan_type=$($CONFIG get vlan_type)
+			ORG_LOGIN=$($CONFIG get wan_orange_username)
+			;;
+		*)
+			;;
+	esac
+}
+
+#check proto, if it's not supported, exit directly
+check_proto
+
+print_with_prefix "Start Failover & Fallback between Ethernet and MBB."
+
+set_global_vars
+
+# always sleep 60s before everything gets ready.
+sleep 60
+while [ 1 ]; do
+	if [ -f /tmp/boot_status ]; then
+		print_with_prefix "router is at boot stage now, so sleep for a while."
+		sleep 10
+	else
+		break
+	fi
+done
+
+while [ 1 ]; do
+	#Do not do failover and fallback if no Ethernet Cable is plugged.
+	if eth_check_port; then
+		print_with_prefix "Ethernet Cable is Plugged into the Router Internet Port."
+		if query_dns ; then
+			if [ "x$($CONFIG get wan_type)" = "xmobile" ]; then
+				print_with_prefix "Eth Detect Success, set wan_type as eth and net-wan restart."
+				$CONFIG set wan_type=eth
+				/etc/init.d/net-wan restart
+			else
+				print_with_prefix "Eth Detect Success but do nothing because current setting has already been eth."
+			fi
+			sleep $wtime #sleep 3mins
+		else
+			if [ "x`mbctrl.sh --get-sim-status`" = "xUNINSERT" ]; then
+				#DNS hijack No Internet.
+				print_with_prefix "SIM CARD not INSERT."
+				sleep 10
+			else
+				print_with_prefix "Eth Detect Fail, change to/remain MBB mode."
+				[ "x$($CONFIG get wan_type)" = "xeth" ] && $CONFIG set wan_type=mobile && touch /tmp/change_to_mbb && /etc/init.d/net-wan restart
+				sleep $wtime #sleep 3mins
+			fi
+		fi
+	else
+		print_with_prefix "No Ethernet Cable is Plugged into the Router Internet Port."
+		if [ "x`mbctrl.sh --get-sim-status`" = "xUNINSERT" ]; then
+			#DNS hijack No Internet.
+			print_with_prefix "SIM CARD not INSERT."
+		else
+			print_with_prefix "No Ethernet Cable is Plugged but SIM Card Detected. Change to/remain MBB mode."
+			[ "x$($CONFIG get wan_type)" = "xeth" ] && $CONFIG set wan_type=mobile && touch /tmp/change_to_mbb && /etc/init.d/net-wan restart
+		fi
+		sleep 10
+	fi
+done

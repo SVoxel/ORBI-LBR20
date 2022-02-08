@@ -1,0 +1,167 @@
+<% http_header("style/form.css") %>
+
+<script>
+<% get_operator() %>
+var wwan0_ip="<% get_mobile_ip() %>";
+var up_time=<% show_uptime() %>
+var internet = <% detwan_valid() %>;
+var wan_type = "<% cfg_get("wan_type") %>";
+var wan_proto = "<% cfg_get("wan2_proto") %>";
+var con_protocol = "<% cfg_get("wan2.pdp_type") %>";
+var info_get_dns1="<% wan_primary_dns() %>";
+var info_get_dns2="<% wan_second_dns() %>";
+var ip = "<% cfg_get("wan2_dhcp_ipaddr") %>";
+var ipv6 ="<% ipv6_wan_ip("wwan0") %>"
+var sim_status = "<% get_sim_status() %>"
+var string_sim_status = "$sim_status".replace(/:/g, "");
+up_time = change_time_type(up_time)
+if(hwversion == "EG18EA")
+	var module_content="$europe_aus";
+else
+	var module_content="$unitedSta_canada";
+function loadvalue()
+{
+	var signal = typeof(singal)=="undefined"?0:parseInt(singal);
+	if(signal == NaN)
+		signal = 0;
+	var tmpElement = document.getElementById("div_sign");
+	if(signal>0 ){
+		tmpElement.children[0].style.backgroundColor = "#4DB128";
+	
+	}
+	if(signal>1 ){
+		tmpElement.children[1].style.backgroundColor = "#4DB128";
+	}
+	if(signal>2 ){
+		tmpElement.children[2].style.backgroundColor = "#4DB128";
+	}
+	if(signal>3 ){
+		tmpElement.children[3].style.backgroundColor = "#4DB128";
+	}
+	if(signal>4 ){
+		tmpElement.children[4].style.backgroundColor = "#4DB128";
+	}
+	/*for(var i=0;i<5;i++){
+		tmpElement.children[i].style.backgroundColor = "#FFF";
+		
+	}*/
+
+
+}
+function change_time_type(up_time)
+{
+        var sec = up_time;
+        var sec = parseInt(sec);
+		
+	var minute_sec = sec%3600;
+	if(minute_sec != sec)
+		var day_hour = (sec - minute_sec)/3600;
+	else
+		var day_hour = 0;
+
+	var hour = day_hour%24;
+	if(hour != day_hour)
+		var day = (day_hour - hour)/24;
+	else
+		var day = 0;
+
+	var sec_sec = minute_sec%60;
+	if(sec_sec != minute_sec)
+		var minute = (minute_sec - sec_sec)/60;
+	else
+		var minute = 0;
+	
+
+	day = day.toString();
+	hour = hour.toString();
+	minute = minute.toString();
+
+        var new_time=day+" $days_mark, "+hour+" $hours_mark, "+minute+" $minute_mark ";
+        return new_time;
+	
+}
+</script>
+<body onload="loadvalue()">
+<div class="page_title">$mobile_info</div>
+<div id="main" class="main">
+<% table_header() %>
+$bluebar
+</table>
+
+<table border=1 cellpadding=2 cellspacing=0 width=100%>
+<tr><td><b>$trigger_contype</b></td><td><script>document.write(wan_proto)</script></td></tr>
+<tr><td><b>$signal_quality</b></td><td><script>document.write(typeof(rssi)=="undefined"?"":rssi)</script></td></tr>
+<tr><td><b>$net_mode</b></td><td><script>document.write(typeof(networkselectmode)=="undefined"?"":networkselectmode)</script></td></tr>
+<tr><td><b>$mobile_band</b></td><td><script>document.write(typeof(radioband)=="undefined"?"":radioband)</script></td></tr>
+<tr><td><b>$lac</b></td><td><script>document.write(typeof(lac)=="undefined"?"":lac)</script></td></tr>
+<tr><td><b>$cell_id</b></td><td><script>document.write(typeof(cellid)=="undefined"?"":cellid)</script></td></tr>
+<tr><td><b><script>document.write(string_sim_status)</script></b></td><td><script>document.write(typeof(sim_status)=="undefined"?"":sim_status)</script></td></tr>
+<tr><td><b>$mobile_imei</b></td><td><script>document.write(imei)</script></td></tr>
+<tr><td><b>$modem_imsi</b></td><td><script>document.write(typeof(imsi)=="undefined"?"":imsi)</script></td></tr>
+<tr><td><b>$statistics_sysuptime</b></td><td><script>document.write(up_time)</script></td></tr>
+<tr><td><b>$roaming_state</b></td><td><script>document.write(typeof(roaming)=="undefined"? "$off_mark" : roaming == "off" ? "$off_mark":"$on_mark") </script></td></tr>
+<tr><td><b>$constatus_head</b></td><td><script>
+if(wwan0_ip != "0.0.0.0")
+	document.write("$connected_mark");
+else
+	document.write("$disconnected_mark");
+</script></td></tr>
+<tr><td><b>$info_mark_ip</b></td><td><script>document.write(typeof(wwan0_ip)=="undefined"?"":wwan0_ip)</script></td></tr>
+<tr><td><b>IPv6</b></td><td><script>document.write(ipv6)</script></td></tr>
+<!-- <tr><td><b>$connect_duration</b></td><td><script>document.write("")</script></td></tr> -->
+<tr><td><b>$mobile_operator</b></td><td><script>document.write(typeof(operator)=="undefined"?"":operator)</script></td></tr>
+<tr><td><b>$mobile_dns</b></td><td><script>document.write(info_get_dns1+info_get_dns2)</script></td></tr>
+<tr><td><b>IPv6 DNS</b></td><td><script>document.write((typeof(ipv6_dns1)=="undefined"?"":ipv6_dns1)+(typeof(ipv6_dns2)=="undefined"?"":"<BR/>"+ipv6_dns2)+(typeof(ipv6_dns3)=="undefined"?"":"<BR/>"+ipv6_dns3))</script></td></tr>
+<tr><td><b>$mobile_rsrp</b></td><td><script>document.write(typeof(rsrp)=="undefined"?"":rsrp)</script></td></tr>
+<tr><td><b>$mobile_rsrq</b></td><td><script>document.write(typeof(rsrq)=="undefined"?"":rsrq)</script></td></tr>
+<tr><td><b>$wds_signalstrength</b></td><td>
+	<div id="div_sign" style="width:30px; height:18px;border:1px solid transparent;">
+		<div style="width:5px;height:3px;margin-top:15px;border:1px solid #0e2d5f;"></div>
+		<div style="width:5px;height:6px;margin-top:-8px;margin-left:7px;border:1px solid #0e2d5f;"></div>
+		<div style="width:5px;height:9px;margin-top:-11px;margin-left:14px;border:1px solid #0e2d5f;"></div>
+		<div style="width:5px;height:12px;margin-top:-14px;margin-left:21px;border:1px solid #0e2d5f;"></div>
+		<div style="width:5px;height:15px;margin-top:-17px;margin-left:28px;border:1px solid #0e2d5f;"></div>
+	</div></td></tr>
+
+	<tr><td><b>$ether_net_type</b></td><td>LTE(<script>document.write(typeof(tdd_fdd)=="undefined"?"":tdd_fdd)</script>)</td></tr>
+	<tr><td><b>$lte_arfcn</b></td><td><script>document.write(typeof(earfcn)=="undefined"?"":earfcn)</script></td></tr>
+	<tr><td><b>$band_name</b></td><td><script>document.write(typeof(band_name)=="undefined"?"":band_name)</script></td></tr>
+	<tr><td><b>$uplink_frequery</b></td><td><script>document.write(typeof(uplink_freq)=="undefined"?"":uplink_freq)</script></td></tr>
+	<tr><td><b>$downlink_frequery</b></td><td><script>document.write(typeof(uplink_freq)=="undefined"?"":uplink_freq)</script></td></tr>
+	<tr><td><b>$band_num</b></td><td><script>document.write(typeof(band_num)=="undefined"?"":band_num)</script></td></tr>
+	<tr><td><b>$ltemodule</b></td><td><script>document.write(typeof(module_content)=="undefined"?"":module_content)</script></td></tr>
+	<tr><td><b>$iccid</b></td><td><script>document.write(typeof(iccid)=="undefined"?"":iccid)</script></td></tr>
+</table>
+
+<style>
+	div {
+		text-align:center;
+		width:100%;
+	}
+
+	iframe {
+		width: 648px;
+		border: 1px #222 ridge;
+	}
+</style>
+
+<center><font face="Arial" size="3" color="#9D98FF"><br><b>SMS Information</b></font></center>
+
+<div>
+	<div style="position:relative; top:10px; left:00px;"> 
+		<iframe height="150" src="sms-tool-output.txt"></iframe>
+	</div>
+</div>
+
+<% table_header() %>
+$bluebar
+<tr>
+	<td nowrap colspan=2  align=center>
+		<input  class="common_key_bt" type=button name="refresh" value="$refresh_mark" onclick="location.href='lte_info.htm'">
+		<input  class="common_key_bt" type=button name="close" value="$close_win_mark" onclick="self.close();">
+	</td>
+</tr>
+</table>
+</div>
+</body>
+</html>

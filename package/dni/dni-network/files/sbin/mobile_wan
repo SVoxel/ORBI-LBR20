@@ -1,0 +1,260 @@
+#!/bin/sh
+
+# script responsible for mobile(X-G) wan setup
+
+# Init from support QMI_WWAN mode for Quectel EGxx
+
+MBCTL_BIN="mbctrl.sh"
+MBOUTPUT_DIR="/tmp/mobile_output"
+sim_status="UNINSERT"
+CONFIG="/bin/config"
+
+mobile_dev_scan()
+{
+	# detect plugged mobile device
+	# for EGxx, it's naturally onboard, so skip it
+
+	pin=`/bin/config get wan2.pin_code`
+	puk=`/bin/config get wan2.puk_code`
+
+	retry_count=0
+	while [ "x$sim_status" != "xREADY" ];
+	do
+		sim_status=$($MBCTL_BIN --get-sim-status)
+
+		if [ $retry_count -gt 2 ]; then
+			case $sim_status in
+				UNINSERT)
+					echo "[MW]: After trying 3 times, still NO SIM CARD INSERT!!!"
+					;;
+				READY)
+					echo "[MW]: After trying 3 times, SIM CARD READY finally!"
+					;;
+				*)
+					echo "[MW]: After trying 3 times, SIM CARD READY Fail! Current SIM STATUS is $sim_status"
+					;;
+			esac
+			break
+		fi
+
+		case $sim_status in
+			"UNINSERT")
+				echo "[MW]: retry_count=$retry_count, NO SIM CARD INSERT!!!"
+				sleep 1
+				;;
+			"SIM PIN")
+				echo "[MW]: retry_count=$retry_count, SIM PIN"
+				$MBCTL_BIN --pin-verify $pin
+				;;
+			"SIM PUK")
+				echo "[MW]: retry_count=$retry_count, SIM PUK"
+				$MBCTL_BIN --puk-verify $puk $pin
+				;;
+
+			*)
+				echo "[MW]: retry_count=$retry_count, Current SIM STATUS is $sim_status"
+				;;
+		esac
+		let retry_count=$retry_count+1
+	done
+
+	sim_detector &
+
+	[ "x$sim_status" = "xREADY" ] && return 0 || return 1
+}
+
+quectel_option_check() # $1:apn, $2:user name, $3:password
+{
+	param_s=""
+	[ -n "$1" ] && param_s="$1" || return
+	[ "x$2" != "xnone" ] && param_s="$param_s $2" || return
+	[ "x$3" != "xnone" ] && param_s="$param_s $3"
+}
+
+wwan_connect()
+{
+	# do several setting if any
+	#  eg. band setting, operator selection
+	# TODO
+
+	# set mobile scanmode(Auto, 3G or 4G)
+	mode=$($CONFIG get wan2.net_mode)
+	case $mode in
+		1) scanmode=4G ;; # 4G "LTE only"
+		2) scanmode=3G ;; # 3G "WCDMA only"
+		*) scanmode=Auto ;; # Auto
+	esac
+
+	$MBCTL_BIN --set-mbscanmode $scanmode
+
+	# data config when domestic = 0 disconnect the network,default is connect
+	# quectel is preferably kill quectel-CM 
+	if [ "x`$CONFIG get wan2.domestic`" = "x0" ];then
+		echo "[MW] domestic is off not start quectel-CM" > /dev/console
+		return	
+	fi
+
+	# then check the network registration status
+	# TODO
+
+#	$MBCTL_BIN --get-network-registration -o $MBOUTPUT_DIR/network_registration
+#	net_registration=`cat $MBOUTPUT_DIR/network_registration`
+
+#	case net_registration in
+#		Not_registered)
+#			;;
+#		Registered_home)
+#			;;
+#		Searching)
+#			;;
+#		Registration_denied)
+#			;;
+#		Unknown)
+#			;;
+#		Registered_roaming)
+#			;;
+#	esac
+
+	# Now seems everything goes ready, lets get into the real work
+	# quectel-CM use DNI udhcpc w/ script default.script.wwan
+
+	apn_name=`/bin/config get wan2.apn`
+	user_name=`/bin/config get wan2.user_name`
+	password=`/bin/config get wan2.password`
+	auth=`/bin/config get wan2.authtype`
+	pincode=`/bin/config get wan2.pin_code`
+	pdp_type=`/bin/config get wan2.pdp_type`
+
+	local vzw_opt
+	current_full_iccid=$($MBCTL_BIN --get-iccid)
+	current_iccid=${current_full_iccid:0:7}
+	if [ "x${current_iccid}" = "x8914800" ]; then
+		echo "[MW]: Verizon option add"
+		vzw_opt="true"
+	fi
+
+	echo "[MW]: wwan_connect config setting is apn-$apn_name, username-$user_name, password-$password, auth-$auth, pincode-$pincode, pdptype=$pdp_type."
+
+	quectel_option_check $apn_name ${user_name:-"none"} ${password:-"none"}
+
+	qcm_debug=`/bin/config get wan2.debug`
+
+	case "$pdp_type" in
+		0)
+			pdp_opt="-4"
+			;;
+		1)
+			pdp_opt="-4"
+			;;
+		2)
+			pdp_opt="-6"
+			;;
+		3)
+			pdp_opt="-4 -6"
+			;;
+		*)
+			pdp_opt="-4"
+			;;
+	esac
+
+	if [ "x$qcm_debug" = "x1" ]; then
+		rm -f /tmp/qcm_logfile
+		quectel-CM ${vzw_opt:+-n 3} ${param_s:+-s $param_s} ${auth:+-a $auth} ${pincode:+-p $pincode} ${pdp_opt} -f /tmp/qcm_logfile &
+	else
+		quectel-CM ${vzw_opt:+-n 3} ${param_s:+-s $param_s} ${auth:+-a $auth} ${pincode:+-p $pincode} ${pdp_opt} &
+	fi
+}
+
+wwan_stop()
+{
+	# stop work
+	echo "[MW]: wwan_stop."
+	killall quectel-CM
+}
+
+# Configuration apply
+mobile_conf()
+{
+	if [ "x`$CONFIG get wan2.roaming`" = "x1" ]; then
+		echo "[MW]: Roaming auto"
+		$MBCTL_BIN --set-roamstate auto
+	else
+		echo "[MW]: Roaming off"
+		$MBCTL_BIN --set-roamstate off
+	fi
+}
+
+# Host network prepare before real connect for Both v4/v6 stack
+host_conf()
+{
+	MW_IF="wwan0"
+	echo 0 > /proc/sys/net/ipv6/conf/${MW_IF}/accept_ra
+}
+
+case $1 in
+	start)
+		#If hot swap is not enabled, set QSIMDET=1,1 to enable sim card hot swap and then cold restart LTE Module
+		$MBCTL_BIN --hot-swap-status
+		if [ "x`cat $MBOUTPUT_DIR/hot_swap_status`" != "xenable" ]; then
+			echo "[MW]: SIM Detect correct."
+			$MBCTL_BIN --set-hot-swap
+			# CFUN=0, CFUN=1 cannot take it in effect. change to cold restart
+			# some egxx settings firstly valid need do cold restart
+			# add in here do one time
+			$MBCTL_BIN --lte-init-setting
+			$MBCTL_BIN power-on
+			# Sleep for module boot up
+			sleep 12
+			echo "[MW]: SIM Detect correct Done."
+			# touch one file for sign of lte bootup successful after factory reset
+			echo "ready" > /tmp/lte_bootup_successful
+		fi
+
+		$MBCTL_BIN boot
+		mobile_dev_scan
+
+		if [ $? -eq 0 ]; then
+			echo "[MW]: SIM STATUS is READY."
+			mobile_conf
+			host_conf
+
+			if [ "x$($CONFIG get factory_mode)" = "x1" ]; then
+				wwan_connect
+				return
+			fi
+
+			if [ -f /tmp/boot_status -a "x$($CONFIG get wan2.startup)" != "x1" ]; then
+				echo "[MW]: In booting up process. And DUT will not connect automatically at startup."
+			else
+				if [ "x$($CONFIG get mobile_scan)" = "x" ]; then
+					echo "[MW]: Start mobile network scan."
+					$CONFIG set mobile_scan="1"
+					/sbin/dni_mobile_scan.sh start
+					$CONFIG set mobile_scan="0"
+					echo "[MW]: End mobile network scan."
+				else
+					echo "[MW]: Do mobile network config setting manually."
+					wwan_connect
+				fi
+			fi
+		else
+			echo "[MW]: SIM STATUS is not READY."
+			return
+		fi
+
+		;;
+	stop)
+		killall sim_detector
+		wwan_stop
+		/etc/net6conf/net6conf stop
+
+		;;
+	boot)
+
+		;;
+	*)
+		echo "$0: show usage"
+		;;
+esac
+
+

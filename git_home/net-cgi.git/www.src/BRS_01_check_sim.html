@@ -1,0 +1,52 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+
+<head>
+<% orbi_flow_head() %>
+<meta http-equiv="refresh" content="20; url=BRS_03A_detcpinpuk.html" />
+<% hijack_language() %>
+<script language="javascript" type="text/javascript">
+<% hijack_net_pinpuk() %>
+var count = "<% cfg_get("sim_pin_count") %>";
+var lte_port_status = "<% get_sim_status() %>";
+
+/* if(lte_port_status != "1")
+{
+    if(top.location.href.indexOf("adv_index.htm") > -1)
+        this.location.href = "BRS_03_01_noLTE.html";
+    else
+         this.location.href = "BRS_00_01_noLTE.html";
+}
+    */
+
+setTimeout("check_result()",3000);
+
+
+function check_result()
+{
+	if(count == "1")
+        this.location.href="BRS_03A_B_lte_pin.html";
+    else
+        this.location.href="BRS_03A_B_check_sim_result.html";
+}
+</script>
+</head>
+
+<body>
+<% form_submit("apply", "BRS_netgear_success.html", "hijack_success")  %>
+</form>
+<div id="container">
+	<div class="dialog-content">
+		<!-- Searching for Internet -->
+		<div id="card-searching-internet" class="install-card clearfix">
+			<img class="netgear-logo" src="images/netgear.png">
+			<img class="orbi-logo svg-transition" src="images/orbi.png">
+
+			<div class="spinner"></div>
+			<div class="desc-text"><script>document.write(bh_orbi_check_conn);</script></div>
+		</div>
+	</div>
+</div>
+</body>
+
+</html>

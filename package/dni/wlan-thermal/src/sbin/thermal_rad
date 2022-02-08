@@ -1,0 +1,232 @@
+#!/bin/sh
+. /etc/ath/wlan-thermal.conf
+
+g_debug_mode=
+debugecho() { [ "$g_debug_mode" = "1" ] && echo $@ > /dev/console; }
+debugcat() { [ "$g_debug_mode" = "1" ] && cat $@ > /dev/console; }
+
+g_sleep_time=60
+g_thermal_onchip_wifi0_file=/tmp/thermal_wifi0.conf
+g_thermal_onchip_wifi1_file=/tmp/thermal_wifi1.conf
+g_thermal_onchip_wifi2_file=/tmp/thermal_wifi2.conf
+g_thermal_onboard_file=/tmp/thermal_board.conf
+g_thermal_heater_file=/tmp/thermal_heater.conf
+
+wifi_running()
+{
+	ps | grep -E '/sbin/wlan' | grep -q -v 'grep'
+}
+
+is_under_cac() # $1: wifi-device
+{
+	local athx="ath${1#wifi}"
+	local vifs=$(awk -F: '$1~/'$athx'/ {print $1}' /proc/net/wireless)
+	local vif
+
+	for vif in $vifs; do
+		[ "$(iwpriv $vif get_cac_state | awk -F: '{print $2}')" = "1" ] && return 0
+	done
+	return 1
+}
+
+_get_onchip_temp_level() # $1(I): wifi-device, $2(O): temp, $3(O): level
+{
+	local _temp="Unknown"
+	local _level="Unknown"
+	local _string=$(thermaltool -i $1 -get | grep "sensor temperature:")
+
+	if [ -n "$_string" ]; then
+		_temp=$(echo "$_string" | awk '{print $3}' | sed 's/,//g')
+		_level=$(echo "$_string" | awk '{print $6}')
+	fi
+
+	eval "$2=$_temp"
+	eval "$3=$_level"
+}
+
+get_onchip_temp_level() # $1(I): wifi-device, $2(O): temp, $3(O): level
+{
+	local temp="Unknown"
+	local level="Unknown"
+
+	_get_onchip_temp_level $1 temp level
+
+	# temp=0 may mean :
+	# 1. device under cac
+	# 2. device just recover from cac within 2 secs, so we need to re-get temp
+	# 3. the temp really be 0
+	if [ "$temp" -eq 0 ]; then
+		if is_under_cac "$1"; then
+			temp="Unknown"
+			level="Unknown"
+		else
+			sleep 2
+			_get_onchip_temp_level $1 temp level
+		fi
+	fi
+
+	eval "$2=$temp"
+	eval "$3=$level"
+}
+
+print_thermal_data()
+# $1: sensor_name, $2: highestTemp, $3: lowestTemp,
+# $4: otpEnable, $5: otpTriggerStatus, $6: otpTriggerCount, $7: otpTriggerLongestDuration
+{
+	cat <<EOF
+Name=$1
+highestTemp=$2
+lowestTemp=$3
+otpEnable=$4
+otpTriggerStatus=$5
+otpTriggerCount=$6
+otpTriggerLongestDuration=$7
+EOF
+}
+
+update_thermal_onchip_data() # $1: wifi-device
+{
+	debugecho "==== doing device : $1 ===="
+
+	local dev=$1
+	eval local thermal_onchip_file="\$g_thermal_onchip_${dev}_file"
+	eval local chipName="\$g_vendor_chip_name_${dev}"
+	local highestTemp lowestTemp
+	local otpTriggerStatus=0 otpTriggerCount=0 otpTriggerLongestDuration=0
+	local cur_temp cur_level
+	local otpEnable
+
+	get_onchip_temp_level $dev cur_temp cur_level
+	debugecho "cur_temp=$cur_temp, cur_level=$cur_level"
+
+	[ -f $thermal_onchip_file ] && . $thermal_onchip_file
+
+	if [ "$cur_temp" != "Unknown" ]; then
+		highestTemp=${highestTemp:-$cur_temp}
+		lowestTemp=${lowestTemp:-$cur_temp}
+		[ "$cur_temp" -gt "$highestTemp" ] && highestTemp=$cur_temp
+		[ "$cur_temp" -lt "$lowestTemp" ] && lowestTemp=$cur_temp
+	fi
+	if [ "${g_otpEnable}" = "1" ]; then
+		otpEnable="True"
+		[ "$otpTriggerStatus" = "0" ] && [ "$cur_level" = "1" -o "$cur_level" = "2" -o "$cur_level" = "3" ] && \
+			otpTriggerCount=$((otpTriggerCount + 1))
+		[ "$otpTriggerStatus" = "1" -o "$otpTriggerStatus" = "2" -o "$otpTriggerStatus" = "3" ] && \
+			otpTriggerLongestDuration=$((otpTriggerLongestDuration + $g_sleep_time))
+		otpTriggerStatus=$cur_level
+	else
+		otpEnable="False"
+		otpTriggerCount=Null
+		otpTriggerLongestDuration=Null
+		otpTriggerStatus=Unknown
+	fi
+
+	print_thermal_data "$chipName" "$highestTemp" "$lowestTemp" "$otpEnable" \
+		"$otpTriggerStatus" "$otpTriggerCount" "$otpTriggerLongestDuration" > "$thermal_onchip_file"
+
+	debugcat $thermal_onchip_file
+}
+
+get_onboard_temp()
+{
+	local temp=$(cat /proc/simple_config/sensor_temp)
+	[ -z "$temp" ] && echo "Unknown" || echo "$temp"
+}
+
+get_onboard_level()
+{
+	local dcoff=$(thermaltool -i wifi0 -get | grep dcoffpercent | sed  "s/,/ /g" | awk 'FNR==1 {print $10}')
+
+	[ "$dcoff" -eq "0" ] && echo "0" && return
+	[ "$dcoff" -gt "0" ] && echo "1" && return
+	echo "Unknown"
+}
+
+update_thermal_onboard_data()
+{
+	debugecho "==== doing onboard sensor ===="
+
+	local highestTemp lowestTemp
+	local otpTriggerStatus=0 otpTriggerCount=0 otpTriggerLongestDuration=0
+	local cur_temp=$(get_onboard_temp)
+	local cur_level=$(get_onboard_level)
+	debugecho "cur_temp=$cur_temp, cur_level=$cur_level"
+	local otpEnable
+
+	[ -f $g_thermal_onboard_file ] && . $g_thermal_onboard_file
+
+	if [ "$cur_temp" != "Unknown" ]; then
+		highestTemp=${highestTemp:-$cur_temp}
+		lowestTemp=${lowestTemp:-$cur_temp}
+		[ $cur_temp -gt $highestTemp ] && highestTemp=$cur_temp
+		[ $cur_temp -lt $lowestTemp ] && lowestTemp=$cur_temp
+	fi
+	if [ "${g_otpEnable}" = "1" ]; then
+		otpEnable="True"
+		[ "$otpTriggerStatus" = "0" ] && [ "$cur_level" = "1" ] && otpTriggerCount=$((otpTriggerCount + 1))
+		[ "$otpTriggerStatus" = "1" ] && otpTriggerLongestDuration=$((otpTriggerLongestDuration + $g_sleep_time))
+		otpTriggerStatus=$cur_level
+	else
+		otpEnable="False"
+		otpTriggerCount=Null
+		otpTriggerLongestDuration=Null
+		otpTriggerStatus=Unknown
+	fi
+
+	print_thermal_data "$g_onboard_sensor_name" "$highestTemp" "$lowestTemp" "$otpEnable" \
+		"$otpTriggerStatus" "$otpTriggerCount" "$otpTriggerLongestDuration" > "$g_thermal_onboard_file"
+
+	debugcat $g_thermal_onboard_file
+}
+
+get_heater_status()
+{
+	echo 44 > /proc/simple_config/gpio
+	awk -F= '{print $2}' /proc/simple_config/gpio
+}
+
+update_thermal_heater_data()
+{
+	debugecho "==== doing heater ===="
+
+	local heaterTriggerStatus=0 heaterTriggerCount=0 heaterTriggerLongestDuration=0
+	local cur_heater_status=$(get_heater_status)
+	debugecho cur_heater_status=${cur_heater_status}
+
+	[ -f $g_thermal_heater_file ] && . $g_thermal_heater_file
+
+	[ "$heaterTriggerStatus" -eq 0 -a "$cur_heater_status" -eq 1 ] && heaterTriggerCount=$(($heaterTriggerCount + 1))
+	[ "$heaterTriggerStatus" -eq 1 ] && heaterTriggerLongestDuration=$(($heaterTriggerLongestDuration + $g_sleep_time))
+	heaterTriggerStatus=$cur_heater_status
+
+	cat <<EOF >$g_thermal_heater_file
+Name=heater1
+heaterEnable=$g_heaterEnable
+heaterTriggerStatus=$heaterTriggerStatus
+heaterTriggerCount=$heaterTriggerCount
+heaterTriggerLongestDuration=$heaterTriggerLongestDuration
+EOF
+
+	debugcat $g_thermal_heater_file
+}
+
+
+# === program start here ===
+
+# "wlan up" starts this daemon, "wlan down" stops this daemon, the daemon should wait for "wlan up" finished.
+while wifi_running; do sleep 1; done
+
+# wait wlan to warm up, since thermaltool still may get 0-degree after finishing "wlan up"
+sleep 70
+
+DEVICES=$(uci show wireless | grep "type" | grep qcawifi | awk -F. '{print $2}')
+while : ; do
+	for device in ${DEVICES}; do
+		update_thermal_onchip_data $device
+	done
+	[ "$g_otp_sensor" = "onboard" ] && update_thermal_onboard_data
+	[ "$g_heaterEnable" = "True" ] && update_thermal_heater_data
+
+	sleep $g_sleep_time
+done
+

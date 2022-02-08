@@ -1,0 +1,81 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2006 OpenWrt.org 
+
+START=55
+
+#mount function $1=mount_part $2=mount_dev $3=mount_point $4=part_sz $5=part_name $6=block_size
+mount_part()
+{
+	if [ -b $2 ];then
+		[ ! -d $3 ] && mkdir -p $3
+		if [ "x$2" != "x" ];then
+			[ "x$4" != "x$6" ] && echo "$4 != $6:$5 partition have be modify, will re-format" && mkfs.ext4 $2
+		else
+			echo "No such $2 device!"
+			return
+		fi
+		filetype=`blkid $2 | grep -o 'TYPE=.*' | awk -F\" '{print $2}' |cut -c -3`
+		if [ "x$filetype" = "xext" ];then
+			[ -d $3 ] && mount -t ext4 $2 $3
+			ret=`echo $?`
+			if [ $ret -ne 0 ];then
+				echo "Will re-format $2 partition."
+				mkfs.ext4 $2
+				ret_2=`echo $?`
+				[ $ret_2 -ne 0 ] && echo "cannot format $2 partition." || echo "format $2 partition success."
+				[ $ret_2 -eq 0 ] && mount -t ext4 $2 $3
+				ret_3=`echo $?`
+				[ $ret_3 -eq 0 ] && echo "mount $5 partition successful."
+			else
+				echo "mount $5 partition successful."
+			fi
+		else
+			mkfs.ext4 $2
+			ret=`echo $?`
+			[ $ret -ne 0 ] && echo "cannot format $2 partition." || echo "format $2 partition success."
+			[ $ret -eq 0 ] && mount -t ext4 $2 $3
+			ret_2=`echo $?`
+			[ $ret_2 -eq 0 ] && echo "mount $5 partition successful."
+		fi
+	else
+		echo "$2 device is not exist."
+	fi
+}
+
+start_dap()
+{
+	if [ "$($CONFIG get have_forceshield)" = "1" ]; then
+		cp /etc/dap/* /media/nand/
+		sed -i '/80/s/80/8080/g' //etc/lighttpd/lighttpd.conf	
+		sed -i '/443/s/443/8082/g' //etc/lighttpd/lighttpd.conf
+		/etc/init.d/lighttpd restart	
+		/media/nand/check_dap.sh
+	fi
+}
+boot()
+{
+	#create a new partition and mount it to /media/nand
+	mkdir -p /tmp/media
+	mount_point="/media/nand"
+	partition_type=`cat /flash_type`
+	if [ "x$partition_type" = "xNAND_FLASH" ]; then
+		if [ "$(ubinfo -a | grep vol_ntgrdata)" != "" ]; then
+			[ ! -d "/tmp/ntgrdata/forceshield" ] && mkdir -p "/tmp/ntgrdata/forceshield"
+			[ ! -d /media ] && mkdir /media
+			ln -s /tmp/ntgrdata/forceshield /media/nand
+		else
+			mkdir -p /mnt/ntgr/forceshield
+			[ ! -d /media ] && mkdir /media
+			ln -s /mnt/ntgr/forceshield /media/nand
+		fi
+	else
+		mount_part="$(part_dev forceshield |awk -F "dev/" '{print $2}')"
+		mount_dev="/dev/$mount_part"
+		# part size KB
+		part_sz=`cat /proc/partitions | grep $mount_part | awk '{print $3}'`
+		part_name="forceshield"
+		block_size=`tune2fs -l $mount_dev |grep "Block count:" |awk '{print $NF}'`
+		mount_part $mount_part $mount_dev $mount_point $part_sz $part_name $block_size
+	fi
+	start_dap
+}

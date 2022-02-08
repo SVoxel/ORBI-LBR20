@@ -1,0 +1,54 @@
+<html>
+<head>
+<% orbi_flow_head() %>
+<script language="javascript" type="text/javascript" src="script/funcs.js"></script>
+<script language="javascript" type="text/javascript" src="/jquery-1.7.2.min.js"></script>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<% hijack_language() %>
+</head>
+<!--% refresh_timestamp("sso_status") % -->
+<body onLoad="loadvalue();" bgcolor="#ffffff">
+<script>
+var ping_result="none";
+var delay_time=1000;
+var finish=0;
+var port_status = "<% cat_file("/tmp/port_status") %>";
+//var ts = "<% cfg_get("sso_status") %>";
+var sso_url="<% hijack_sso_url("check") %>";
+function loadvalue()
+{
+	document.getElementById("container").style.display="";
+	setTimeout("check_internet_type()",delay_time);
+}
+
+function check_internet_type()
+{
+	if(port_status == "0" || ping_result=="failed")
+	{
+		//ajax_post({"submit_flag": "sso_status","ssoGuiRegStatus":"4"},null,null,ts,null);
+		finish=1;
+		top.location.href="index.htm";
+	}
+	else if(ping_result=="success"){
+		top.location.href=sso_url;
+		finish=1;
+	}
+	if(finish!=1)
+		setTimeout("check_internet_type()",delay_time);
+}
+</script>
+<div id="container" style="display: none">
+	<div class="dialog-content">
+		<!-- Searching for Internet -->
+		<div id="card-searching-internet" class="install-card clearfix">
+			<img class="netgear-logo" src="images/netgear.png">
+			<img class="orbi-logo svg-transition" src="images/orbi.png">
+
+			<div class="spinner"></div>
+			<div class="desc-text"><script>document.write(bh_orbi_check_conn);</script></div>
+		</div>
+	</div>
+</div>
+<iframe name="ping_frame" src="BRS_ping_sso.html" allowtransparency="true" scrolling="no" frameborder="0" style="display:none"></iframe>
+</body>
+</html>

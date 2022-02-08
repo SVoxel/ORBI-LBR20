@@ -1,0 +1,7 @@
+define Package/dni-mtdoops/install_dniext
+	$(INSTALL_BIN) $(LOCAL_DNI_FILES_EXT)/dni-debug.init $(1)/etc/init.d/
+endef
+
+define Package/dni-mtdoops/prepare_dniext
+endef
+

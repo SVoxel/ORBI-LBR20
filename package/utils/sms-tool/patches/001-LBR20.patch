@@ -1,0 +1,110 @@
+--- a/sms_main.c
++++ b/sms_main.c
+@@ -15,9 +15,12 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <termios.h>
++#include <sys/ioctl.h>
+ 
+ #include "pdu_lib/pdu.h"
+ 
++#define SEPARATOR "─"
++
+ static void usage()
+ {
+ 	fprintf(stderr,
+@@ -29,7 +32,7 @@
+ 		"       [options] at command\n"
+ 		"options:\n"
+ 		"\t-b <baudrate> (default: 115200)\n"
+-		"\t-d <tty device> (default: /dev/ttyUSB0)\n"
++		"\t-d <tty device> (default: /dev/ttyUSB2)\n"
+ 		"\t-D debug (for ussd)\n"
+ 		"\t-f <date/time format> (for sms/recv)\n"
+ 		"\t-j json output (for sms/recv)\n"
+@@ -42,7 +45,7 @@
+ 
+ static struct termios save_tio;
+ static int port = -1;
+-static const char* dev = "/dev/ttyUSB0";
++static const char* dev = "/dev/ttyUSB2";
+ static const char* storage = "";
+ static const char* dateformat = "%D %T";
+ 
+@@ -167,6 +170,12 @@
+ 	int rawoutput = 0;
+ 	int jsonoutput = 0;
+ 	int debug = 0;
++	struct winsize winsize;
++	int winwidth = 80;
++
++	ioctl(STDOUT_FILENO, TIOCGWINSZ, &winsize);
++	if (winsize.ws_col > 0)
++		winwidth = winsize.ws_col;
+ 
+ 	while ((ch = getopt(argc, argv, "b:d:Ds:f:jRr")) != -1){
+ 		switch (ch) {
+@@ -327,8 +336,6 @@
+ 						printf(",");
+ 					}
+ 					printf("{\"index\":%d,",idx[count]);
+-				} else {
+-					printf("MSG: %d\n",idx[count]);
+ 				}
+ 
+ 				++count;
+@@ -370,22 +377,36 @@
+ 				if(jsonoutput == 1) {
+ 					printf("\"sender\":\"%s\",",phone_str);
+ 				} else {
+-					printf("From: %s\n",phone_str);
++					if (part_number <= 1) {
++						if (idx[count - 1] == 0) {
++							for (int i = 0; i < winwidth; i++)
++								printf("%s", SEPARATOR);
++							printf("\n");
++						}
++						printf("MSG: %d\n",idx[count - 1]);
++						printf("From: %s\n",phone_str);
++					}
+ 				}
+ 				char time_data_str[64];
+ 				strftime(time_data_str, 64, dateformat, gmtime(&sms_time));
+ 				if(jsonoutput == 1) {
+ 					printf("\"timestamp\":\"%s\",",time_data_str);
+ 				} else {
+-					printf("Date/Time: %s\n",time_data_str);
++					if (part_number <= 1) {
++						printf("Date/Time: %s\n",time_data_str);
++					}
+ 				}
+ 
+ 				if(total_parts > 0) {
+ 					if(jsonoutput == 1) {
+ 						printf("\"reference\":%d,\"part\":%d,\"total\":%d,", ref_number, part_number, total_parts);
+ 					} else {
+-						printf("Reference number: %d\n", ref_number);
+-						printf("SMS segment %d of %d\n", part_number, total_parts);
++#if 0
++						if (part_number <= 1) {
++							printf("Reference number: %d\n", ref_number);
++							printf("SMS segment %d of %d\n", part_number, total_parts);
++						}
++#endif
+ 					}
+ 				}
+ 
+@@ -436,7 +457,12 @@
+ 				if(jsonoutput == 1) {
+ 					printf("\"}");
+ 				} else {
+-					printf("\n\n");
++					if (part_number == total_parts) {
++						printf("\n");
++						for (int i = 0; i < winwidth; i++)
++							printf("%s", SEPARATOR);
++						printf("\n");
++					}
+ 				}
+ 			}
+ 		}

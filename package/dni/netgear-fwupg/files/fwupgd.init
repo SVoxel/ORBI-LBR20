@@ -1,0 +1,72 @@
+#!/bin/sh /etc/rc.common
+
+################################################################################
+### this script is a sample, please modify it for your projects!!!
+################################################################################
+
+START=11
+
+[ -f "/module_name" ] \
+	&& model="$(tr '[:lower:]' '[:upper:]' </module_name)" \
+	|| model="$(artmtd -r board_model_id | awk -F ":" '{print 2}')"
+[ -f "/hw_id" ] \
+	&& hw_id="$(cat /hw_id)" \
+	|| hw_id="$(artmtd -r board_hw_id | awk -F ":" '{print $2}')"
+[ -f "/flash_type" ] \
+	&& storage_type="$([ "$(cat /flash_type)" = "EMMC" ] && echo EMMC || echo NAND)" \
+	|| storage_type="$(grep -q firmware /proc/mtd && echo NAND || echo EMMC)"
+
+opt_args=""
+# fwupgd_debug should be set to "on" in env to run in debug mode.
+[ "$fwupgd_debug" = "on" ] && opt_args='$opt_args -d'
+
+start ()
+{
+	[ ! -d /tmp/fwupg ] && mkdir -p /tmp/fwupg
+
+	case "$model" in
+	"XR500")
+		fwupgd	$opt_args \
+			-M "$model" \
+			-I "$hw_id" \
+			-S "$storage_type" \
+			-P "/dev/$(awk -F":" '/firmware/ {print $1}' /proc/mtd)" \
+			-L "/dev/$(awk -F":" '/language/ {print $1}' /proc/mtd)" \
+			-m 10 \
+			-s 262144 \
+		;;
+	"RBR50"|"RBS50"|"RBR40"|"RBS40")
+		fwupgd	$opt_args \
+			-M "$model" \
+			-I "$hw_id" \
+			-S "$storage_type" \
+			-P "$(part_dev firmware)" \
+			-B "$(part_dev firmware2)" \
+			-L "$(part_dev language)" \
+			-m 6 \
+			-s 204800 \
+			-F 2 \
+		;;
+	"RBR20"|"RBS20"|"LBR20")
+		fwupgd	$opt_args \
+			-M "$model" \
+			-I "$hw_id" \
+			-S "$storage_type" \
+			-P "$(part_dev firmware)" \
+			-L "$(part_dev language)" \
+			-m 6 \
+			-s 204800 \
+		;;
+	esac
+}
+
+stop ()
+{
+	killall -SIGKILL fwupgd
+}
+
+restart()
+{
+	stop
+	start
+}

@@ -1,0 +1,15 @@
+#!/bin/sh
+
+case "$1" in 
+enable|start)
+	echo "start thermal OTP & RA ..."
+	thermal_otpd &
+	[ "$(uci get wireless.qcawifi.thermal_analytics)" = "1" ] && thermal_rad &
+	;;
+disable|stop)
+	echo "stop thermal OTP & RA ..."
+	killall thermal_otpd 2>/dev/null >/dev/null
+	killall thermal_rad 2>/dev/null >/dev/null
+	;;
+esac
+

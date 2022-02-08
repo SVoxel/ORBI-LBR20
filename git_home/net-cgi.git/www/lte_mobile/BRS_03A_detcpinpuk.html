@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+
+<head>
+<% orbi_flow_head() %>
+<!-- <meta http-equiv="refresh" content="5; url=BRS_01_pinpunk_result.html" /> -->
+<% hijack_language() %>
+</head>
+<script language="javascript" type="text/javascript">
+	var pin_puk_result = "0"; //0 puk,1 pin, 2 pin and puk,3 no need
+	
+	function loadValue()
+	{
+	
+		if(pin_puk_result == "3")	
+		{	
+			this.location.href = "BRS_03A_B_lte.html";
+		}
+		else
+		{
+			this.location.href = "BRS_03A_B_lte_pin.html";		
+		}
+	}
+	</script>
+<body onload="loadValue()">
+
+<div id="container">
+	<div class="dialog-content">
+		<!-- Searching for Internet -->
+			<div id="card-searching-internet" class="install-card clearfix">
+				<img class="netgear-logo" src="images/netgear.png">
+				<img class="orbi-logo svg-transition" src="images/orbi.png">
+
+				<div class="spinner"></div>
+				<div class="desc-text"><script>document.write(bh_orbi_check_conn);</script></div>
+		</div>
+	</div>
+</div>
+
+</body>
+
+</html>

@@ -1,0 +1,1 @@
+<% cfg_get("mb_upgrade_process") %>

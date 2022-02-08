@@ -1,0 +1,19 @@
+<% http_header("style/form.css", "/funcs.js") %>
+<body onload='loadvalue();'>
+	<div id="main" class="main">
+		<form method="post" action="/upgrade_lte_local.cgi" target=formframe>
+			<input type="hidden" name="upgrade_yes_no" value="">
+		<script language="javascript" type="text/javascript">
+		function loadvalue()
+		{
+			var form = document.forms[0];
+			form.upgrade_yes_no.value = "1";
+			form.submit();
+		}
+		</script>
+
+	</table>
+		</form>
+	</div>
+</body>
+				</html>

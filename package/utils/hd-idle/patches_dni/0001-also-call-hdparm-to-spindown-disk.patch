@@ -1,0 +1,14 @@
+--- a/hd-idle.c
++++ b/hd-idle.c
+@@ -403,6 +403,11 @@
+   unsigned char sense_buf[255];
+   char dev_name[100];
+   int fd;
++  char cmd[128];
++
++  /* some HDD can only be spin-down by hdparm */
++  sprintf(cmd, "hdparm -y /dev/%s", name);
++  system(cmd);
+ 
+   dprintf("spindown: %s\n", name);
+ 

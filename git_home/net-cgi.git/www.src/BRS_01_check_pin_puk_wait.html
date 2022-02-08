@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+
+<head>
+<% orbi_flow_head() %>
+<% hijack_language() %>
+<script language="javascript" type="text/javascript">
+var count = "<% cfg_get("sim_pin_count") %>";
+
+function loadvalue()
+{
+	var cf= document.forms[0];
+	var self = this;
+	$$.ajax({url:"lte_sim_status.txt",success:function(lte_port_status){
+			console.log("===="+lte_port_status+"=========");
+            if(lte_port_status == "READY")
+				cf.submit();
+			else if(lte_port_status == "SIM PUK")
+				self.location.href="BRS_03A_B_lte_puk.html";
+			else //PIN
+				self.location.href="BRS_03A_B_lte_pin.html";
+           
+    }});
+        
+}
+</script>
+</head>
+
+<body onload="loadvalue()">
+<% form_submit("apply", "BRS_03A_detcInetType_lte_scan.html", "hijack_to_mobile")  %>
+<div id="container">
+	<div class="dialog-content">
+		<!-- Searching for Internet -->
+		<div id="card-searching-internet" class="install-card clearfix">
+			<img class="netgear-logo" src="images/netgear.png">
+			<img class="orbi-logo svg-transition" src="images/orbi.png">
+
+			<div class="spinner"></div>
+			<div class="desc-text"><script>document.write(bh_orbi_check_conn);</script></div>
+		</div>
+	</div>
+</div>
+</form>
+</body>
+
+</html>

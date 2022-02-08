@@ -1,0 +1,140 @@
+#!/bin/sh
+. /etc/ath/wlan-thermal.conf
+
+g_debug_mode=
+debugecho() { [ "$g_debug_mode" = "1" ] && echo $@ > /dev/console; }
+
+get_wifi_otp_params() # dev lo0 hi0 off0 lo1 hi1 off1 lo2 hi2 off2 lo3 hi3 off3
+{
+	eval local otp_params="\$g_${1}_otp_parameters"
+
+	eval $2=$(echo $otp_params | awk -F, '{print $1}')
+	eval $3=$(echo $otp_params | awk -F, '{print $2}')
+	eval $4=$(echo $otp_params | awk -F, '{print $3}')
+	eval $5=$(echo $otp_params | awk -F, '{print $4}')
+	eval $6=$(echo $otp_params | awk -F, '{print $5}')
+	eval $7=$(echo $otp_params | awk -F, '{print $6}')
+	eval $8=$(echo $otp_params | awk -F, '{print $7}')
+	eval $9=$(echo $otp_params | awk -F, '{print $8}')
+	eval $10=$(echo $otp_params | awk -F, '{print $9}')
+	eval $11=$(echo $otp_params | awk -F, '{print $10}')
+	eval $12=$(echo $otp_params | awk -F, '{print $11}')
+	eval $13=$(echo $otp_params | awk -F, '{print $12}')
+}
+
+set_onchip_thermal_dev() # $1: wif
+{
+	local dev=$1
+	local lo0 hi0 off0 lo1 hi1 off1 lo2 hi2 off2 lo3 hi3 off3
+
+	get_wifi_otp_params $dev lo0 hi0 off0 lo1 hi1 off1 lo2 hi2 off2 lo3 hi3 off3
+	debugecho "$dev,$lo0,$hi0,$off0,$lo1,$hi1,$off1,$lo2,$hi2,$off2,$lo3,$hi3,$off3"
+
+	thermaltool -i $dev -set -e 1 -lo0 $lo0 -hi0 $hi0 -off0 $off0
+	thermaltool -i $dev -set -e 1 -lo1 $lo1 -hi1 $hi1 -off1 $off1
+	thermaltool -i $dev -set -e 1 -lo2 $lo2 -hi2 $hi2 -off2 $off2
+	thermaltool -i $dev -set -e 1 -lo3 $lo3 -hi3 $hi3 -off3 $off3
+}
+
+set_onchip_thermal()
+{
+	[ -n "$g_vendor_chip_name_wifi0" ] && set_onchip_thermal_dev wifi0
+	[ -n "$g_vendor_chip_name_wifi1" ] && set_onchip_thermal_dev wifi1
+	[ -n "$g_vendor_chip_name_wifi2" ] && set_onchip_thermal_dev wifi2
+}
+
+get_wifi_dcoffs() # wifi0_dcoff, wifi1_dcoff, wifi2_dcoff
+{
+	local otp_params="$g_onboard_dcoff_parameters"
+
+	eval $1=$(echo $otp_params | awk -F, '{print $1}')
+	eval $2=$(echo $otp_params | awk -F, '{print $2}')
+	eval $3=$(echo $otp_params | awk -F, '{print $3}')
+}
+
+set_onboard_thermal_dev() # $1: wif ; $2: dcoff
+{
+	thermaltool -i $1 -set -e 1 -lo0 -100 -hi0 150 -off0 $2
+	thermaltool -i $1 -set -e 1 -lo1 -100 -hi1 150 -off1 $2
+	thermaltool -i $1 -set -e 1 -lo2 -100 -hi2 150 -off2 $2
+	thermaltool -i $1 -set -e 1 -lo3 -100 -hi3 150 -off3 $2
+}
+
+set_onboard_thermal() #$1: on/off
+{
+	local wifi0_dcoff wifi1_dcoff wifi2_dcoff
+
+	get_wifi_dcoffs wifi0_dcoff wifi1_dcoff wifi2_dcoff
+	debugecho "wifi0_dcoff=$wifi0_dcoff wifi1_dcoff=$wifi1_dcoff wifi2_dcoff=$wifi2_dcoff"
+
+	if [ "$1" = "on" ]; then
+		[ -n "$g_vendor_chip_name_wifi0" ] && set_onboard_thermal_dev wifi0 $wifi0_dcoff
+		[ -n "$g_vendor_chip_name_wifi1" ] && set_onboard_thermal_dev wifi1 $wifi1_dcoff
+		[ -n "$g_vendor_chip_name_wifi2" ] && set_onboard_thermal_dev wifi2 $wifi2_dcoff
+	else
+		[ -n "$g_vendor_chip_name_wifi0" ] && set_onboard_thermal_dev wifi0 0
+		[ -n "$g_vendor_chip_name_wifi1" ] && set_onboard_thermal_dev wifi1 0
+		[ -n "$g_vendor_chip_name_wifi2" ] && set_onboard_thermal_dev wifi2 0
+	fi
+}
+
+get_onboard_temp()
+{
+	local temp=$(cat /proc/simple_config/sensor_temp)
+	[ -z "$temp" ] && echo "Unknown" || echo "$temp"
+}
+
+get_lte_temp()
+{
+	local temp=$(mbctrl.sh --get-pa-temp)
+	[ -z "$temp" ] && echo "Unknown" || echo "$temp"
+}
+
+need_to_up_otpd()
+{
+	local cur_temp=$(get_onboard_temp)
+	[ "$cur_temp" -ge "$g_onboard_hi_temp" ] && return 0
+	[ "$g_lte_sensor" != "1" ] && return 1
+
+	local lte_temp=$(get_lte_temp)
+	[ "$lte_temp" -ge "$g_lte_hi_temp" ] && return 0
+	return 1
+}
+
+need_to_down_otpd()
+{
+	local cur_temp=$(get_onboard_temp)
+	[ "$cur_temp" -gt "$g_onboard_lo_temp" ] && return 1
+	[ "$g_lte_sensor" != "1" ] && return 0
+
+	local lte_temp=$(get_lte_temp)
+	[ "$lte_temp" -gt "$g_lte_lo_temp" ] && return 1
+	return 0
+}
+
+run_otpd()
+{
+	local delay=60
+	local otp_up=0
+
+	set_onboard_thermal off
+
+	while true; do
+		if [ "$otp_up" = "0" ]; then
+			need_to_up_otpd && otp_up=1 && set_onboard_thermal on
+		else
+			need_to_down_otpd && otp_up=0 && set_onboard_thermal off
+		fi
+		sleep $delay
+	done
+}
+
+
+# === program start here ===
+[ "$g_otpEnable" = "1" ] || exit
+
+case "$g_otp_sensor" in
+onchip) set_onchip_thermal ;;
+onboard) run_otpd ;;
+esac
+

@@ -1,0 +1,120 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+
+<head>
+<% orbi_flow_head() %>
+<script language="javascript" type="text/javascript" src="script/funcs.js"></script>
+<% hijack_language() %>
+<% deleteFiles("/tmp/ping_result_error", "/tmp/ping_ip_result_error", "/tmp/ping_gateway_result_error")%>
+<% deleteFiles("/tmp/ping_result", "/tmp/wget_file_result") %>
+<style>
+.open-eye
+{
+	background: url(./image/eye_icon.png) no-repeat 0px 0px;
+}
+.close-eye
+{
+	background: url(./image/eye_icon.png) no-repeat -23px 0px;
+}
+.wizard-icon{
+	width: 20px;
+	height: 28px;
+	position: absolute;
+	left: 200px;
+	display: inline-block;
+	z-index: 100000;
+	}
+</style>
+</head>
+
+<body>
+<% form_submit("apply", "BRS_01_check_mobile_genie_wait_time.html", "hijack_puk") %>
+
+<script>
+window.onload = function()
+{
+	$$("#new_pin_code").val("");
+}
+
+function submit_pinpuk()
+{
+	cf = document.forms[0];
+
+	var reg1 = new RegExp("^[0-9]{8}$$");
+	var len1 = reg1.test(document.getElementById("puk_code").value);  
+	if(!len1)
+	{
+		alert(bh_mobile_puk);
+		return false;
+	}
+	if(document.getElementById("new_pin_code").value == "")
+	{
+		alert(bh_enter_pincode);
+		return false;
+	}
+	
+	if(document.getElementById("new_pin_code").value != "")
+	{
+		var reg = new RegExp("^[0-9]{4}$$");
+		var len = reg.test(document.getElementById("new_pin_code").value);  
+		if(!len)
+		{
+			alert(bh_mobile_pin);
+			return false;
+		}
+
+	}
+
+		return true;
+		
+}
+function form_password_switch(obj)
+{
+	var c_name = obj.className;
+	if(c_name.indexOf("close-eye") > -1)
+	{
+		obj.className = "wizard-icon open-eye";
+		obj.previousElementSibling.type = "text";   
+	}
+	else if(c_name.indexOf("open-eye") > -1)
+	{
+		obj.className = "wizard-icon close-eye";
+		obj.previousElementSibling.type = "password";     
+	}
+}
+</script>
+
+<div id="container">
+	<div class="dialog-content">
+		<!-- Orbi Setup WiFi-->
+		<div id="card-orbi-setup-wifi" class="install-card clearfix">
+			<img class="netgear-logo" src="images/netgear.png">
+			<input type="text" style="display: none;" />
+			<input type="password" style="display: none;" />
+			<div class="desc-title"><script>document.write(bh_puk_code);</script></div>
+			<div class="desc-text"><script>document.write(bh_puk_get_way);</script></div>
+
+			<div id ="puk_div" class="input-wrapper input-text-box-two">
+				<div class="input-title"><script>document.write(bh_puk_code);</script></div>
+				<input type="text" id="puk_code" maxlength="16" align="right" name="puk_code" autocomplete="off" />
+			</div>
+			
+			<div id ="new_pin_div" style="position: relative;" class="input-wrapper input-text-box-two">
+				<div class="input-title"><script>document.write("Create new SIM PIN");</script></div>
+			
+				<input type="password" id="new_pin_code" maxlength="16" align="right" name="new_pin_code" autocomplete="off"/>
+				<div class="wizard-icon close-eye" onclick="form_password_switch(this)"></div>
+			</div>
+
+			<button class="waves-effect waves-light btn button-nav" onclick="return submit_pinpuk()" >
+				<span><script>document.write(bh_orbi_next_mark);</script></span>
+			</button>
+
+          </div>
+	</div>
+</div>
+
+</form>
+</body>
+
+</html>

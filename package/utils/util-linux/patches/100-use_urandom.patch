@@ -1,0 +1,14 @@
+--- a/lib/randutils.c	2020-07-22 11:06:46.905692300 +0300
++++ b/lib/randutils.c	2020-08-21 12:38:45.804797400 +0300
+@@ -26,6 +26,11 @@
+ #define THREAD_LOCAL static
+ #endif
+ 
++/* force /dev/urandom to avoid hanging on early boot */
++#undef HAVE_GETRANDOM
++#undef SYS_getrandom
++#undef __NR_getrandom
++
+ #ifdef HAVE_GETRANDOM
+ # include <sys/random.h>
+ #elif defined (__linux__)

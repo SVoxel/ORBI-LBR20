@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+
+<head>
+<% orbi_flow_head() %>
+<% hijack_language() %>
+<% cfg_set("from_nowan_retry", "0") %>
+</head>
+
+<body>
+	
+<script>
+function check_simstatus()
+{
+	this.location.href="BRS_03_00_check_port.html";
+	return false;
+}
+
+</script>
+<% form_submit("apply", "BRS_03_00_check_port.html", "hijack_mobile_port")  %>
+<div id="container">
+	<div class="dialog-content">
+		<!-- No Ethernet Cable is Plugged Internet -->
+		<div id="card-no-ethernet-cable" class="install-card clearfix">
+			<img class="netgear-logo" src="images/netgear.png">
+
+			<div class="desc-title"><script>document.write(bh_no_wan_mobilemag);</script></div>
+			<div class="desc-text"><script>document.write(bh_detect_not_simcard_msg3);</script></div>
+			<button class="waves-effect waves-light btn button-nav" onclick="return check_simstatus();">
+				<span><script>document.write(bh_orbi_tryagain_mark);</script></span>
+			</button>
+		</div>
+
+		<!-- Searching for Internet -->
+		<div id="card-searching-internet" class="install-card clearfix" style="display:none">
+			<img class="netgear-logo" src="images/netgear.png">
+			<img class="orbi-logo svg-transition" src="images/orbi.png">
+
+			<div class="spinner"></div>
+			<div class="desc-text"><script>document.write(bh_orbi_check_conn);</script></div>
+		</div>
+	</div>
+</div>
+</form>
+</body>
+
+</html>

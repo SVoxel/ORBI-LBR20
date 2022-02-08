@@ -1,0 +1,27 @@
+===============================
+Orbi Build Instructions
+===============================
+
+Note:
+	* This package has been built successfully on Ubuntu 14.04.1 (Server) with gcc5.2 .
+	* Compiling this package on platforms other than Ubuntu 14.04.1 may have unexpected results.
+
+
+============
+ Build code
+============
+
+1. uncompress source code file LBR20-V2.5.2.20_gpl_src.tar.bz2.zip.
+
+	unzip LBR20-V2.5.2.20_gpl_src.tar.bz2.zip.
+	tar -jxvf LBR20-V2.5.2.20_gpl_src.tar.bz2
+
+2. run following commands to build.
+
+	cd LBR20-V2.5.2.20_gpl_src
+	cp config/defconfig-orbi .config
+	make V=99
+
+3. the final image is "bin/ipq806x/LBR20-V2.5.2.20".
+
+User may upgrade to this image using the Orbi GUI "Router Upgrade" page.

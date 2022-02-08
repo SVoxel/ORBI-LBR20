@@ -1,0 +1,91 @@
+<% http_header("style/form.css", "/funcs.js") %>
+<body bgcolor="#ffffff" onLoad="loadvalue()">
+<style>
+.waiting { font: bold 17px arial; color: #f508ff; }
+.prgbar { width: 393px; }
+</style>
+<script type="text/javascript">
+var pchar = "|"; // progress char
+var maxchars = 72; 
+var delay_time = 12500; // msecs
+var charcount = 0;
+var interflag;
+
+function loadvalue()
+{
+	updateProgress();
+	getUpgradeStatus();
+}
+
+function getUpgradeStatus()
+{
+	var file="/lte_fw_upgrade.txt";
+    var xmlHttp = createXMLHttpRequest();
+	var result;
+	var cf = document.forms[0];
+
+        xmlHttp.onreadystatechange=function()
+        {
+                if(xmlHttp.readyState==4 && xmlHttp.status==200)
+                {
+			result=xmlHttp.responseText;
+			if(result == "running")
+			{
+				interflag = setTimeout("getUpgradeStatus()",60000)
+			}
+			else if(result == "success")
+			{ 
+				clearTimeout(interflag);
+				cf.submit();
+			}
+			else
+			{
+				clearTimeout(interflag);
+				alert("$lte_update_fail");
+				top.location.href="adv_index.htm";
+			} 
+                }
+		}
+        xmlHttp.open("GET", file, true);
+        xmlHttp.send();
+}
+
+function makeStr(strSize, fillChar)
+{
+	var temp = "";
+	for (i=0; i < strSize ; i ++)
+		temp = temp + fillChar;
+	return temp;
+}
+
+function updateProgress()
+{
+	var cf = document.forms[0];
+	if (charcount < maxchars)
+	{
+		charcount ++;
+		cf.progress.value = makeStr(charcount,pchar);
+		setTimeout("updateProgress()",delay_time);
+	}
+	else
+	{
+		clearTimeout(interflag);
+		top.location.href="adv_index.htm";
+	}
+}
+</script>
+<!-- <form> -->
+<% noload_header("", "reboot_waiting.htm", "reboot") %>
+<table border="0" cellpadding="0" cellspacing="3" width="100%">
+<tr>
+	<td nowrap align=left class="waiting" style="font: bold 17px arial;color: #f508ff;">$mobile_fw_upgrade ...</td>
+</tr>
+<tr>
+	<td nowrap align=center><input type="text" name="progress" class="prgbar" value=""></td>
+</tr>
+$bluebar
+</table>
+</form>
+</body>
+</html>
+

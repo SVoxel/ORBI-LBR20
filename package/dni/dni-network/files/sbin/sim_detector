@@ -1,0 +1,95 @@
+#!/bin/sh
+
+# script responsible for mobile(X-G) check sim insert status
+
+MBCTL_BIN="mbctrl.sh"
+SIM_STATUS="/tmp/mobile_output/sim_status"
+MB_TMP_DIR="/tmp/mobile_tmpfile"
+
+# Level 1 wait
+# 	Figo:   change it to 20s
+# Level 2 wait 
+#	figo advise: when in cdless let it to 5s else to 20s
+#
+
+local qmi_timeout_event=0
+
+qmi_timeout_event_trigger()
+{
+	echo "[DNI-SD]: qmi timeout workaround event trigger"
+	qmi_timeout_event=1
+}
+
+trap qmi_timeout_event_trigger SIGUSR1
+
+wait_lvl()
+{
+	TIME_GAP=20
+	if [ "x$(/bin/config get hijack_process)" != "x3" ];then
+		TIME_GAP=5
+	fi
+	sleep $TIME_GAP
+}
+
+qmi_timeout_trigger_cnt()
+{
+	local count=0;
+	#tuoch one file to record, when reboot clearly
+	echo "[DNI-SD] do Qmi Recover record"
+	if [ -f $MB_TMP_DIR/QmiRecoverCnt ];then
+		count=`cat $MB_TMP_DIR/QmiRecoverCnt`
+		let count+=1
+	else
+		count=1
+	fi
+	echo "$count" > $MB_TMP_DIR/QmiRecoverCnt
+
+}
+
+old_sim_status=$($MBCTL_BIN --get-sim-status)
+
+sleep 2
+
+change_mode=0
+
+while [ 1 ];
+do
+
+	[ "x$(/bin/config get wan_type)" = "xeth" ] && exit 1
+
+	current_sim_status=$($MBCTL_BIN --get-sim-status)
+
+	if [ -z "$current_sim_status" ]; then
+		echo "[DNI-SD]: SIM status = null"
+		wait_lvl
+		continue
+	fi
+
+	if [ "x${old_sim_status}" != "x${current_sim_status}" ]; then
+		# Non-Ready -> Ready, we do 'net-wan restart'
+		[ "x${current_sim_status}" = "xREADY" ] && change_mode=1
+	else
+		change_mode=0
+	fi
+
+	if [ $change_mode -eq 1 ]; then
+		echo "[DNI-SD]: change-> old=$old_sim_status , new=$current_sim_status "
+		echo "[DNI-SD]: [net-wan restarting]----------sim_detector----------"
+		/etc/init.d/net-wan restart
+		break
+	fi
+
+	if [ $qmi_timeout_event -eq 1 ]; then
+		qmi_timeout_trigger_cnt
+		if [ "x$(/bin/config get qmi_timeout_disable)" = "x1" ]; then
+			qmi_timeout_event=0
+			echo "[DNI-SD]: qmi timeout workaround disabled"
+		else
+			echo "[DNI-SD]: [net-wan restarting]----------QMITimeout Workaround----------"
+			/etc/init.d/net-wan restart
+			break
+		fi
+	fi
+
+	wait_lvl
+done

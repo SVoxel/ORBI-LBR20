@@ -1,0 +1,78 @@
+# This is free software, licensed under the GNU General Public License v2.
+# See /LICENSE for more information.
+#
+
+include $(TOPDIR)/rules.mk
+
+PKG_NAME:=getdns
+PKG_VERSION:=1.7.0
+PKG_RELEASE:=1
+
+PKG_LICENSE:=BSD-3-Clause
+PKG_LICENSE_FILES:=LICENSE
+PKG_MAINTAINER:=
+
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
+PKG_SOURCE_URL:=https://getdnsapi.net/dist/
+PKG_MD5SUM:=91876dd5883f5fed8ed5ae27226e6bb7
+
+CMAKE_INSTALL:=1
+
+PKG_CONFIG_DEPENDS:= \
+	CONFIG_GETDNS_ENABLE_STUB_ONLY \
+	CONFIG_GETDNS_ENABLE_IDN_LIBIDN2
+
+include $(INCLUDE_DIR)/package.mk
+include $(INCLUDE_DIR)/cmake.mk
+
+define Package/getdns/Default
+	TITLE:=getdns
+	URL:=https://getdnsapi.net/
+endef
+
+define Package/getdns
+	$(call Package/getdns/Default)
+	SECTION:=libs
+	CATEGORY:=Libraries
+	TITLE+= (library)
+	DEPENDS+= +libopenssl-1.1.x +check +!GETDNS_ENABLE_STUB_ONLY:libunbound +GETDNS_ENABLE_IDN_LIBIDN2:libidn2
+	MENU:=1
+endef
+
+define Package/getdns/description
+	This package contains the getdns library (libgetdns).
+endef
+
+define Package/getdns/config
+	source "$(SOURCE)/Config.in"
+endef
+
+# CMAKE options for GetDNS are described in this document:
+# https://getdnsapi.net/quick-start/cmake-quick-start/
+CMAKE_OPTIONS += -DBUILD_LIBEV=OFF
+CMAKE_OPTIONS += -DBUILD_LIBEVENT2=OFF
+CMAKE_OPTIONS += -DBUILD_LIBUV=OFF
+
+CMAKE_OPTIONS += -DENABLE_STUB_ONLY=$(if $(CONFIG_GETDNS_ENABLE_STUB_ONLY),ON,OFF)
+CMAKE_OPTIONS += -DUSE_LIBIDN2=$(if $(CONFIG_GETDNS_ENABLE_IDN_LIBIDN2),ON,OFF)
+
+# getdns will use libbsd for the functions inet_pton, inet_ntop, strlcpy if
+# present, otherwise it will use builtin code for these functions. In order to
+# force the use of the built in code and remove the libbsd dependency disable
+# the test for libbsd.
+CMAKE_OPTIONS += -DBSD_LIBRARY=OFF
+CMAKE_OPTIONS += -DOPENSSL_INCLUDE_DIR=$(STAGING_DIR)/usr/include/openssl-1.1.x
+CMAKE_OPTIONS += -DOPENSSL_CRYPTO_LIBRARY=$(STAGING_DIR)/usr/lib/openssl-1.1.x/libcrypto.so
+CMAKE_OPTIONS += -DOPENSSL_SSL_LIBRARY=$(STAGING_DIR)/usr/lib/openssl-1.1.x/libssl.so
+
+# Disable static linking to ensure that utility programs such as getdns_query
+# don't end up as large statically linked binaries.
+CMAKE_OPTIONS += -DENABLE_STATIC=OFF
+CMAKE_OPTIONS += -DENABLE_SHARED=ON  # This is the default
+
+define Package/getdns/install
+	$(INSTALL_DIR) $(1)/usr/lib
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libgetdns.so.* $(1)/usr/lib/
+endef
+
+$(eval $(call BuildPackage,getdns))

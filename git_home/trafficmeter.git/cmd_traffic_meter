@@ -1,0 +1,73 @@
+#!/bin/sh
+
+#
+# Exection begins here
+#
+CONFIG="/bin/config"
+
+case "$1" in
+start)
+	echo -n "traffic_meter start : "
+	cp -arf /usr/traffic_meter/ /tmp/
+	/sbin/generate_traffic_meter_conf
+	/sbin/traffic_meter
+	/sbin/mobile_traffic_meter
+	echo "."
+	;;
+
+stop)
+	echo -n "traffic_meter stop : "
+	/usr/bin/killall traffic_meter
+	/usr/bin/killall mobile_traffic_meter
+	#wait for save in flash
+	sleep 2
+	echo "."
+	;;
+
+restart)
+	$0 stop
+	$0 start
+	;;
+config_update)
+	echo -n "traffic_meter config_update : "
+	/sbin/generate_traffic_meter_conf
+	local traffic_wan_type=`/bin/config get traffic_wan_type`
+	if [ $traffic_wan_type == "1" ];then
+		/usr/bin/killall -USR1 mobile_traffic_meter
+	elif [ $traffic_wan_type == "0" ];then
+		/usr/bin/killall -USR1 traffic_meter
+	elif [ $traffic_wan_type == "2" ];then
+		/usr/bin/killall -USR1 mobile_traffic_meter
+		/usr/bin/killall -USR1 traffic_meter
+	fi
+	#To fix the bug 73734
+	sleep 1
+	[ "x`ps -w|grep net-wan |grep -v grep`" = "x" ] && {
+	#if mobile update config we not do restart, if do will let uncheck to check disconnect fail.
+		if [ "$wan_type" == "eth" ];then
+			echo "[net-wan restarting]----------cmd_traffic_meter-config_update----------"
+			/etc/init.d/net-wan restart
+		fi
+	}
+##To fix the bug 25516 & 26430
+	sleep 10
+	/bin/config set default_traffic="1"
+	/bin/config commit
+	echo "."
+	;;
+restart_counter)
+	echo -n "traffic_meter restart_counter : "
+	local traffic_rs_type=`/bin/config get traffic_restart_type`
+	if [ $traffic_rs_type == "1" ];then
+	/usr/bin/killall -USR2 mobile_traffic_meter
+	else
+	/usr/bin/killall -USR2 traffic_meter
+	fi
+	echo "."
+	;;
+*)
+	echo "Usage: /sbin/traffic_meter {start|stop|restart|config_update|restart_counter}"
+	exit 1
+	;;
+esac
+

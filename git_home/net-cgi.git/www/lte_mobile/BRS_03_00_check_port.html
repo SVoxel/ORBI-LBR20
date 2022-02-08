@@ -1,0 +1,74 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+
+<head>
+<% orbi_flow_head() %>
+<meta http-equiv="refresh" content="20; url=BRS_03A_detcpinpuk.html" />
+<% hijack_language() %>
+</head>
+
+<body onload="loadvalue()" > 
+<% form_submit("apply", "BRS_01_check_mobile_genie_wait.html", "hijack_to_mobile")  %>
+<% save_timestamp("hijack_to_mobile", "hijack_to_eth")%>
+<script language="javascript" type="text/javascript">
+
+var lte_port_status = "<% get_sim_status() %>";
+var port_status = "<% cat_file("/tmp/port_status") %>";
+var wan_type = "<% cfg_get("wan_type") %>";
+var ts="<% cfg_get("hijack_to_mobile") %>";
+
+
+function loadvalue()
+{
+	cf=document.forms[0];
+	if(lte_port_status == "UNINSERT" && port_status == "0" ) //SIM and eth all uninsert
+				this.location.href = "BRS_03_01_noLTE.html";
+			else if(lte_port_status != "UNINSERT" ) //SIM insert
+			{
+				this.location.href = "BRS_01_check_pin_puk_wait.html";
+			}
+				
+			else if(port_status != "0" && wan_type == "mobile") //eth insert
+			{
+				cf.action = "/apply.cgi?/BRS_01_check_eth_wizard_genie_wait.html timestamp=" + ts;
+				cf.submit_flag.value = "hijack_to_eth";
+				cf.submit();
+			}
+			else
+			{
+				cf.action = "/apply.cgi?/BRS_01_check_eth_wizard_genie_wait.html timestamp=" + ts;
+				cf.submit_flag.value = "hijack_to_eth";
+				cf.submit();
+			}
+
+
+/* 
+	if(lte_port_status == "UNINSERT")
+	{
+		
+		this.location.href = "BRS_03_01_noLTE.html";
+	}else
+	{
+		var cf = document.forms[0];
+		cf.submit();
+	} */
+}
+</script>
+
+
+<div id="container">
+	<div class="dialog-content">
+		<!-- Searching for Internet -->
+		<div id="card-searching-internet" class="install-card clearfix">
+			<img class="netgear-logo" src="images/netgear.png">
+			<img class="orbi-logo svg-transition" src="images/orbi.png">
+
+			<div class="spinner"></div>
+			<div class="desc-text"><script>document.write(bh_orbi_check_conn);</script></div>
+		</div>
+	</div>
+</div>
+</form>
+</body>
+
+</html>

@@ -1,0 +1,41 @@
+#!/bin/sh /etc/rc.common
+
+STOP=20
+START=18
+
+CMD_CFG=/bin/config
+DEVPORT=/dev/ttyUSB2
+DNICHAT=/usr/sbin/dnichat
+MB_CTRL=/usr/sbin/mbctrl.sh
+
+boot(){
+
+	if [ "x$(/bin/config get factory_mode)" = "x1" ]; then
+		exit 0
+	fi
+
+	router_reset=`$CMD_CFG get reset_flag`
+	if [ $router_reset -eq 1 ];then
+		for i in $(seq 1 20)
+		do
+			$DNICHAT $DEVPORT AT 
+			if [ $? -eq 0 ];then
+				echo "##############can run dnichat now############## " > /dev/console
+				$MB_CTRL --def 
+				echo "##############router default also do mobile default############## " > /dev/console
+				#after test port up cost around 10s
+				sleep 12
+				break
+			else
+				echo "##############can not run dnichat now############## " > /dev/console
+				sleep 3
+			fi
+		done
+	fi
+}
+
+
+stop()
+{
+	mbctrl.sh power-off
+}

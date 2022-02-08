@@ -1,0 +1,22 @@
+--- a/configure	2020-02-18 10:03:14.638650800 +0300
++++ b/configure	2020-03-06 13:50:14.251143800 +0300
+@@ -24638,7 +24638,7 @@
+ #
+ # Avahi runtime dir
+ #
+-avahi_runtime_dir="/run"
++avahi_runtime_dir="/var/run"
+ avahi_socket="${avahi_runtime_dir}/avahi-daemon/socket"
+ 
+ 
+--- a/configure.ac	2020-02-18 10:01:15.816990900 +0300
++++ b/configure.ac	2020-03-06 13:49:34.548593400 +0300
+@@ -1004,7 +1004,7 @@
+ #
+ # Avahi runtime dir
+ #
+-avahi_runtime_dir="/run"
++avahi_runtime_dir="/var/run"
+ avahi_socket="${avahi_runtime_dir}/avahi-daemon/socket"
+ AC_SUBST(avahi_runtime_dir)
+ AC_SUBST(avahi_socket)

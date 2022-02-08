@@ -1,0 +1,35 @@
+#!/bin/sh
+
+CONFIG=/bin/config
+KILLALL=/usr/bin/killall
+NUM=0
+PS0=`ps |grep $0 |grep -v grep | wc -l`
+NEWSOAP_FLAG=`$CONFIG get newsoap_model`
+
+if [ $PS0 -gt 2 ];then
+	exit
+fi
+
+if [ "$NEWSOAP_FLAG" = "1" ];then
+	$CONFIG set soap_setting="AttachDevice"
+	$KILLALL -SIGUSR1 soap_agent
+	exit
+fi
+
+if [ "x$($CONFIG get soap_setting)" = "xAttachDevice" ]; then
+	$KILLALL -SIGUSR1 soap_agent
+else
+	while [ $NUM -lt 5 ]
+		do
+			PS=`ps | grep soapclient |grep -v grep`
+			if [ "x$PS" = "x" ]; then
+				$CONFIG set soap_setting="AttachDevice"
+				$KILLALL -SIGUSR1 soap_agent
+				break
+			else
+				sleep 60
+				NUM=$(($NUM + 1))
+			fi
+		done
+fi
+

@@ -1,0 +1,400 @@
+<% http_header("style/form.css", "/funcs.js", "/bas_lte.js", "/bas_pppoe.js") %>
+<% body_header("_BAS_ether", "BAS_lte_update.htm", "lte") %>
+<style>
+.main_lte{
+	width: 100%;
+	background-color: #fff;
+	overflow: auto;
+	position: absolute;
+	top: 90px;
+	left: 0;
+	bottom: 30px;
+}
+</style>
+<div class="page_title">$mobile_broadband_head</div>
+<script>
+var in_hijack=( "<% cfg_get("dns_hijack") %>" == "1" && "<% cfg_get("hijack_process") %>" != "3" );
+
+var curr_country="<% cfg_get("wan2.country") %>";
+var curr_isp="<% cfg_get("wan2.isp") %>";
+var wan_preference="<% cfg_get("wan_policy") %>";
+var wan_mode="<% cfg_get("wan2.net_mode") %>";
+var wan_pdp_type="<% cfg_get("wan2.pdp_type") %>";
+var wan_auth_type="<% cfg_get("wan2.authtype") %>";
+var wan_recon="<% cfg_get("wan2.reconnect") %>";
+var wan_roam_auto="<% cfg_get("wan2.roaming") %>";
+var set_apn = "<% cfg_sed_xss("wan2.apn") %>" ;
+var set_username = "<% cfg_sed_xss("wan2.user_name") %>" ;
+var set_password = "<% cfg_sed_xss("wan2.password") %>" ;
+var enable_wanlan="<% cfg_get("enable_wan_to_lan") %>";
+set_apn = set_apn.replace(/&#92;/g, "\\").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&#40;/g,"(").replace(/&#41;/g,")").replace(/&#34;/g,'\"').replace(/&#39;/g,"'").replace(/&#35;/g,"#").replace(/&#38;/g,"&");
+set_username = set_username.replace(/&#92;/g, "\\").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&#40;/g,"(").replace(/&#41;/g,")").replace(/&#34;/g,'\"').replace(/&#39;/g,"'").replace(/&#35;/g,"#").replace(/&#38;/g,"&");
+set_password = set_password.replace(/&#92;/g, "\\").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&#40;/g,"(").replace(/&#41;/g,")").replace(/&#34;/g,'\"').replace(/&#39;/g,"'").replace(/&#35;/g,"#").replace(/&#38;/g,"&");
+
+var netgear_region=(top.netgear_region == "") ? "WW" : top.netgear_region;
+var set_isp_flag = 0; //0:isp not in isp list
+var set_coun_flag = 0; //0:isp not in country list
+var coun = ["Austria","Belgium","Czech","Finland","France","Germany","Hungary","Italy","Netherlands","Norway","New Zealand","Poland","Portugal","Sweden","Switzerland","Slovakia","USA","other"];
+top.wan_type ="<% cfg_get("wan_type") %>";
+top.wan_policy ="<% cfg_get("wan_policy") %>";
+var wan_type_before="";
+var select_basic="<% cfg_get("internet_type") %>";
+var select_type="<% cfg_get("internet_ppp_type") %>";
+var orange_pppoe_dod="<% cfg_get("wan_orange_pppoe_demand") %>";
+var l2tp_dod="<% cfg_get("wan_l2tp_demand") %>";
+var pptp_dod="<% cfg_get("wan_pptp_demand") %>";
+var pppoe_dod="<% cfg_get("wan_pppoe_demand") %>";
+
+var ISP_ALL = 
+    new Array (
+	new Array ("A1","A1","Aon","Aon","HoT Internet","HoT Internet","3 AT","3 AT","Orange A","Orange A","T-Mobile AUT","T-Mobile AUT","Tele-ring","Tele-ring","other","Other"),
+	new Array ("Telenet","Telenet","Proximus","Proximus","mobi*","mobi*","Base","Base","other","Other"),
+	new Array ("T-Mobile CZ","T-Mobile CZ","ET - CZ","ET - CZ","Vodafone CZ","Vodafone CZ","other","Other"),
+	new Array ("Sonera","Sonera","Elisa Corp","Elisa Corp","DNA LTD","DNA LTD","Saunalahti Post","Saunalahti Post","other","Other"),
+	new Array ("Bouygues Tel","Bouygues Tel","Virgin Mobile","Virgin Mobile","Free Mobile","Free Mobile","Orange France","Orange France","Enterprise One","Enterprise One","SFR","SFR","SFR Modem","SFR Modem","other","Other"),
+	new Array ("Sipgate","Sipgate","O2 Germany","O2 Germany","Telekom DEU","Telekom DEU","Vodafone","Vodafone","Aldi Talk","Aldi Talk","Gigacube","Gigacube","other","Other"),
+	new Array ("pannon","pannon","TMO H","TMO H","voda","voda","other","Other"),
+	new Array ("TIM","TIM","Ho","Ho","voda ITA phone","voda ITA phone","voda ITA data","voda ITA data","Digi","Digi","Wind","Wind","Tre","Tre","CoopVoce","CoopVoce","PosteMobile","PosteMobile","Iliad","Iliad","FW WEB MOBILE","FW WEB MOBILE","other","Other"),
+	new Array ("Vodafone Lib","Vodafone Lib","KPN B.V.","KPN B.V.","Telfort B.V.","Telfort B.V.","T-Mobile NL","T-Mobile NL","Ericsson","Ericsson","Tele2","Tele2","Chalmers","Chalmers","other","Other"),
+	new Array ("TELENOR","TELENOR","One Call","One Call","Mobile Norway","Mobile Norway","Network Norway","Network Norway","ice.net","ice.net","Telia No","Telia No","VODA","VODA","other","Other"),
+	new Array ("Vodafone NZ","Vodafone NZ","Spark","Spark","Vodafone UG","Vodafone UG","2degrees","2degrees","MTN ZM","MTN ZM","other","Other"),
+	new Array ("Play Internet","Play Internet","Orange Polska","Orange Polska","Plus","Plus","Plus Internet","Plus Internet","T-Mobile Polska","T-Mobile Polska","Cyfrowy Polsat","Cyfrowy Polsat","Aero2","Aero2","other","Other"),
+	new Array ("Vodafone PT 1","Vodafone PT 1","Vodafone PT 2","Vodafone PT 2","OPTIM","OPTIM","MEO","MEO","other","Other"),
+	new Array ("3 SE","3 SE","COMVIQ GSM","COMVIQ GSM","Telenor","Telenor","Tele 2 AB","Tele 2 AB","WiFog","WiFog","Foggmobile","Foggmobile","VODA","VODA","Telia SE","Telia SE","Halebop","Halebop","DK TDC","DK TDC","other","Other"),
+	new Array ("UFONE","UFONE","Salt","Salt","Salt. PrePay","Salt. PrePay","Sunrise","Sunrise","Swissom","Swissom","Orange","Orange","other","Other"),
+	new Array ("Orange","Orange","Telekom SK","Telekom SK","Swan SK","Swan SK","other","Other"),
+	new Array ("AT&T Mobile","AT&T Mobile","T Mobile","T Mobile","US Cellular","US Cellular","C Spire","C Spire","Cellular One","Cellular One","other","Other"),
+	new Array ("other","$qos_device47")
+
+/* 
+
+
+	new Array ("du","du","ETISALAT","ETISALAT","Other","Other"),
+	new Array ("BATELCO","BATELCO","VIVA","VIVA","Zain BH","Zain BH","Other","Other"),
+	new Array ("Rogers","Rogers","Telus","Telus","Bell","Bell","Other","Other"),
+	
+	
+	new Array ("3 DK","3 DK","Oister","Oister","TDC Mobil","TDC Mobil","Telenor DK","Telenor DK","TeliaSonera DK","TeliaSonera DK","Other","Other"),
+	new Array ("Vodafone","Vodafone","Orange","Orange","Yoigo","Yoigo","Jazztel","Jazztel","Lowi","Lowi","MobilR","MobilR","Movistar","Movistar","Pepephone","Pepephone","Simyo","Simyo","Tuenti","Tuenti","Other","Other"),
+	new Array ("EMT","EMT","Elisa Eesti","Elisa Eesti","Tele2","Tele2","Other","Other"),
+	 */
+	
+/* 	new Array ("Orange","Orange","Airtel-Vodafone","Airtel-Vodafone","Sure","Sure","T-Mobile","T-Mobile","Virgin","Virgin","EE","EE","3","3","O2 UK","O2 UK","Giff Gaff","Giff Gaff","O2 Pay & Go","O2 Pay & Go","BT Mobile","BT Mobile","vodafone","vodafone","vodafone_pp","vodafone_pp","Talkmobile","Talkmobile","Lebara","Lebara","Other","Other"),
+	new Array ("China Mobile HK1","China Mobile HK1","China Mobile HK2","China Mobile HK2","Hong Kong China Unicom","Hong Kong China Unicom","PCCW-HKT","PCCW-HKT","CSL","CSL","3 HK","3 HK","SmarTone HK","SmarTone HK","Other","Other"),
+	new Array ("Hutchison 3G","Hutchison 3G","Meteor","Meteor","o2 IRL","o2 IRL","Tesco Mobile","Tesco Mobile","vodafone","vodafone","Other","Other"),
+	new Array ("Orange IL","Orange IL","Cellcom Israel","Cellcom Israel","Pelephone","Pelephone","Hot Mobile","Hot Mobile","Other","Other"),
+	new Array ("H3G","H3G","FW WEB MOBILE","FW WEB MOBILE","TIM","TIM","vodafone","vodafone","Wind Telecom","Wind Telecom","Other","Other"),
+	new Array ("VIVA KUWAIT","VIVA KUWAIT","zain KW","zain KW","Ooredoo","Ooredoo","Other","Other"),
+	new Array ("OMNITEL","OMNITEL","BITE GSM","BITE GSM","TELE2","TELE2","Other","Other"),
+	new Array ("LMT","LMT","TELE2","TELE2","Bite Latvija","Bite Latvija","Other","Other"),
+	
+	
+	new Array ("OMAN MOBILE","OMAN MOBILE","nawras","nawras","Other","Other"),
+	
+	new Array ("Ooredoo","Ooredoo","Vodafone Qatar","Vodafone Qatar","Other","Other"),
+	new Array ("Baykalwestcom","Baykalwestcom","MOTIV","MOTIV","MegaFon","MegaFon","MTS","MTS","Rostelecom OJSC","Rostelecom OJSC","ROSTELECOM","ROSTELECOM","Beeline","Beeline","New Telephone","New Telephone","SMARTS","SMARTS","SMARTS-Ufa","SMARTS-Ufa","TELE2","TELE2","Yeniseytelecom","Yeniseytelecom","Other","Other"),
+	new Array ("Mobily","Mobily","Zain","Zain","Lebara","Lebara","STC","STC","Other","Other"),
+	new Array ("SingTel","SingTel","M1","M1","StarHub","StarHub","Other","Other"),
+	
+	new Array ("Chunghwa","Chunghwa","Taiwan Mobile","Taiwan Mobile","Other","Other"),
+	
+	new Array ("VodaCom","VodaCom","Telkom SA Ltd","Telkom SA Ltd","Cell C","Cell C","MTN-SA","MTN-SA","Other","Other") */
+		);
+		
+function setisp()
+{
+    var cf = document.forms[0];
+    var isp_list = cf.isp;
+    var index = cf.country.selectedIndex;
+	var len=0, i=0;
+
+
+    isp_list.options.length = 100;
+    if (ISP_ALL[index].length > 0)
+    {
+        for (i=0; i<ISP_ALL[index].length; i+=2)
+        {
+            isp_list.options[len].text = ISP_ALL[index][i+1];
+            isp_list.options[len].value = ISP_ALL[index][i];
+            len++;
+        }
+    }
+
+	isp_list.options.length = len;
+	for (i=0; i<isp_list.options.length; i++)
+    {
+        if (isp_list.options[i].value == curr_isp)
+        {
+			isp_list[i].selected = true;
+			set_isp_flag=1;
+            break;
+        }
+	}
+
+	if(curr_country == cf.country.value  && set_isp_flag == 0)
+		isp_list[isp_list.options.length-1].selected = true;
+	else if(set_isp_flag == 0)
+		isp_list[0].selected = true; //change new country
+}
+
+function  change_isp()
+{
+	var cf = document.forms[0];
+	if(c=apn_list[cf.country.value]){
+			if(s=c[cf.isp.value]){
+				if(curr_country == cf.country.value && cf.isp.value == curr_isp )// 
+				{
+					cf.apn.value = set_apn;
+					cf.username.value = set_username;
+					cf.password.value = set_password;
+					cf.pdp_type.value = wan_pdp_type;
+					cf.auth_type.value = wan_auth_type;
+
+				}
+				else{
+					//alert("s.pdptype"+s.pdptype);
+					//alert("s.authtype"+s.authtype);
+					cf.apn.value = s.apn;
+					cf.username.value = s.username;
+					cf.password.value = s.password;
+					cf.pdp_type.value = s.pdptype;
+					cf.auth_type.value = s.authtype;
+				}
+			 }
+			}
+			
+			
+}
+
+function load_isp()
+{
+	var cf = document.forms[0];
+	if((cf.country.value == "other" && curr_country !="") || (cf.isp.value == "other" && curr_isp !=""))
+			{
+					cf.apn.value = set_apn;
+					cf.username.value = set_username;
+					cf.password.value = set_password;
+					cf.pdp_type.value = wan_pdp_type;
+					cf.auth_type.value = wan_auth_type;
+			}
+}
+
+function loadvalue()
+{
+	var cf = document.forms[0];
+	top.menu_class_set();
+	
+/* 	if(curr_country == "")
+		cf.country.value ='Austria';
+	else if(coun.indexOf (curr_country) == -1)
+	{
+		cf.country.value = 'other';
+		cf.isp.value = 'other';
+	}
+	else
+	{
+		cf.country.value = curr_country;
+		set_coun_flag = 1;
+	} */
+		
+//	setisp();
+	//cf.isp.value = curr_isp;
+	cf.apn.value = set_apn;
+	cf.username.value = set_username;
+	cf.password.value = set_password;
+	cf.pdp_type.value = wan_pdp_type== ""?'0':wan_pdp_type;
+	cf.auth_type.value = wan_auth_type== ""?'0':wan_auth_type;
+	
+	cf.conn_mode.value = wan_preference?wan_preference:"mobile_only";
+	wan_type_before = cf.conn_mode.value;
+//	schange_isp();
+//	load_isp();
+	cf.network_mode.value = wan_mode? wan_mode:'0';
+/* 	cf.pdp_type.value = wan_pdp_type? wan_pdp_type:'1';
+	cf.pdp_type.value = wan_auth_type? wan_auth_type:'0'; */
+	/* if(wan_recon == "1")
+		cf.re_conn_auto.checked = true */
+	if(wan_roam_auto == "1")
+		cf.roam_auto.checked = true
+	/*
+	goTestApply(); */
+}
+
+function oepn_info()
+{
+	window.open('lte_info.htm', 'lte_info', 'width=961,height=400,top=200,left=200,status=yes,resizable=yes');	
+}
+function change_wan_type(eve)
+{
+	if(enable_wanlan == "1")
+	{
+		eve.options[0].selected = true;
+		alert("$mobile_wan_to_lan");
+	}
+	if( eve.value == "failover")
+	{
+		if(select_basic == "0" && ((select_type == "6" && (orange_pppoe_dod == "1" || orange_pppoe_dod == "2")) || (select_type == "4" && (l2tp_dod == "1" || l2tp_dod == "2")) || (select_type == "1" && (pptp_dod == "1" || pptp_dod == "2")) || (select_type == "0" && (pppoe_dod == "1" || pppoe_dod == "2")) ))
+		{
+			eve.value = wan_type_before;
+			alert("$lte_failover_warning1");
+		}
+			
+	}
+	else
+	{
+		wan_type_before = eve.value;
+	}
+}
+</script>
+ 
+<input type="hidden" name="hid_roam_auto">
+<!-- <input type="hidden" name="hid_re_conn_auto"> -->
+<div class="fix_button">
+<TABLE width=100% border=0 cellpadding=0 cellspacing=2>
+<script>
+var master="<% cfg_get("http_loginname") %>";
+
+if( master =="admin" ){
+document.write('<TR><TD nowrap colspan=2 align=center><input class="apply_bt" type="button" name="Apply" id="apply" value="$apply_mark" onClick="return check_lte(document.forms[0])">');
+document.write('<input class="cancel_bt" type="button" name="cancel" id="cancel" value="$cancel_mark" onClick="location.href=\'BAS_lte.htm\';">&nbsp;&nbsp;');
+document.write('<input class="common_bt" type="button" name="status" id="status" value="$con_status" onClick="oepn_info()">&nbsp;&nbsp;</TD></TR>');
+}
+else
+{
+document.write('<TR><TD nowrap colspan=2 align=center><input class="apply1_bt" type="button" name="Apply" id="apply" disabled value="$apply_mark" onClick="return check_lte(document.forms[0])">');
+document.write('<input class="cancel1_bt" type="button" name="cancel" id="cancel" disabled value="$cancel_mark" onClick="location.href=\'BAS_lte.htm\';">&nbsp;&nbsp;');
+document.write('<input class="common_bt" type="button" name="status" id="status" value="$con_status" onClick="oepn_info()">&nbsp;&nbsp;</TD></TR>');
+}
+</script>
+</TABLE>
+</div><!--button-->
+<div id="main" class="main_lte">
+<TABLE cellspacing=5 cellPadding=0 width=100% border=0>
+<TR>
+<TD nowrap><A tabindex=-1 href="javascript:loadhelp('_BAS_ether','doname')">$lte_broadband_conn_mode</A></TD>
+	<TD nowrap align=right>
+	<select name="conn_mode" size=1 onchange="change_wan_type(this);return false;">
+		<option selected  value="mobile_only">$mobile_3g</option>
+		<option value="failover"> $mobile_mode_failover</option>
+		<option value="eth_only">$mobile_disable_3g</option>
+	</select>
+	</TD>
+</TR>
+<!-- <TR>
+<TD nowrap><A tabindex=-1 href="javascript:loadhelp('_BAS_ether','doname')">$basic_intserv_provider</A></TD>
+	<TD nowrap align=right>
+	<select name="isp" size=1  onchange="change_isp();">
+		<option value="A1">A1</option>
+		<option value="Aon">Aon</option>
+		<option value="HoT Internet">HoT Internet</option>
+		<option value="3 AT">3 AT</option>
+		<option value="Orange">Orange</option>
+		<option value="T-Mobile AUT">T-Mobile AUT</option>
+		<option value="Tele-ring">Tele-ring</option>
+		<option value="Other">Other</option>
+	</select>
+	</TD>
+</TR> -->
+<TR>
+	<TD nowrap><A tabindex=-1 href="javascript:loadhelp('_BAS_ether','doname')">APN</A></TD>
+	<TD nowrap align=right>
+	<input type="text" name="apn" id="apn"  size="20" maxlength="64" value="<% cfg_sed_xss("wan2.apn") %>"  onKeyPress="return getkey( 'ddns_hostname',event)">
+	</TD>
+</TR>
+<TR>
+<TD nowrap><A tabindex=-1 href="javascript:loadhelp('_BAS_ether','doname')">$net_mode</A></TD>
+	<TD nowrap align=right>
+	<select name="network_mode" size=1>
+		<option selected  value="0">$mobile_auto_mode</option>
+		<option  value="1">4G </option>
+		<option  value="2">3G</option>
+	</select>
+	</TD>
+</TR>
+$bluebar
+<TR>
+	<TD nowrap colspan=2>
+	<A tabindex=-1 href="javascript:loadhelp('_BAS_ether','InternetIP')">$mobile_note</A>
+	</TD>
+</TR>
+<TR>
+	<TD nowrap>
+	<A tabindex=-1 href="javascript:loadhelp('_BAS_pppoe','password')">$ddns_username</A>
+	</TD>
+	<TD nowrap align=right>
+	<input type="text" name="username" id="username" value="<% cfg_sed_xss("wan2.user_name") %>" maxlength="64" size="16" onKeyPress="return getkey('ssid', event)">
+	</TD>
+</TR>
+<TR>
+	<TD>
+	<A tabindex=-1 href="javascript:loadhelp('_BAS_pppoe','serv_name')">$basic_pppoe_passwd</A>
+	</TD>
+	<TD nowrap align=right>
+	<input type="text" name="password" id="password" maxLength="64" size="16" onKeyPress="return getkey('ssid', event)" value="<% cfg_sed_xss("wan2.password") %>"> 
+	</TD>
+</TR>
+
+<TR>
+<TD nowrap><A tabindex=-1 href="javascript:loadhelp('_BAS_ether','doname')">$pdp_type</A></TD>
+	<TD nowrap align=right>
+	<select name="pdp_type" size=1>
+		<option selected  value="0"> PDP-IP(IPv4) </option>
+		<option selected  value="1"> PDP-PPP </option>
+		<option selected  value="2"> PDP-IPv6 </option>
+		<option selected  value="3"> PDP-IPv4v6 </option>
+	</select>
+	</TD>
+</TR>
+<TR>
+		<TD nowrap><A tabindex=-1 href="javascript:loadhelp('_BAS_ether','doname')">$sec_auth</A></TD>
+			<TD nowrap align=right>
+			<select name="auth_type" size=1>
+				<option selected  value="0"> None </option>
+				<option selected  value="1"> Pap </option>
+				<option selected  value="2"> Chap </option>
+				<option selected  value="3"> MsChapV2 </option>
+			</select>
+			</TD>
+		</TR>
+<TR>
+	<TD>
+	<A tabindex=-1 href="javascript:loadhelp('_BAS_pppoe','serv_name')">$pin_code_3g</A>
+	</TD>
+	<TD nowrap align=right>
+	<input type="text" name="pin_code" id="pin_code" maxLength="64" size="16" onKeyPress="return getkey('ssid', event)" value="<% cfg_sed_xss("wan2.pin_code") %>">
+	</TD>
+</TR>
+<TR>
+	<TD>
+	<A tabindex=-1 href="javascript:loadhelp('_BAS_pppoe','serv_name')">$puk_code_3g</A>
+	</TD>
+	<TD nowrap align=right>
+	<input type="text" name="puk_code" id="puk_code" maxLength="64" size="16" onKeyPress="return getkey('ssid', event)" value="<% cfg_sed_xss("wan2.puk_code") %>">
+	</TD>
+</TR>
+$bluebar
+<!--<TR>
+	<TD nowrap colspan=2><input type=checkbox name="conn_auto" id="conn_auto" >
+	<A tabindex=-1 href="javascript:loadhelp('_wlan_guest_bgn','enable_guest')">$autoconn_start</A>
+	</TD>
+</TR>
+<TR>	
+	<TD nowrap colspan=2><input type=checkbox name="re_conn_auto" id="re_conn_auto">
+	<A tabindex=-1 href="javascript:loadhelp('_wlan_guest_bgn','enable_ssid')"> $reconncet_when_connlost</A>
+	</TD>
+</TR> -->
+<TR>
+	<TD nowrap colspan=2><input type=checkbox name="roam_auto" id="roam_auto">
+	<A tabindex=-1 href="javascript:loadhelp('_wlan_guest_bgn','allow_guest')">$mobile_roam_auto</A>
+	</TD>
+</TR>
+
+
+
+$bluebar
+</TABLE>
+</div> <!-- main -->
+<% help_box("0","_BAS_lte") %>
+</FORM>
+</BODY>
+</HTML>

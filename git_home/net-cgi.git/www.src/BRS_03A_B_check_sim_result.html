@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+
+<head>
+<% orbi_flow_head() %>
+<script language="javascript" type="text/javascript" src="script/funcs.js"></script>
+<% hijack_language() %>
+<% deleteFiles("/tmp/ping_result_error", "/tmp/ping_ip_result_error", "/tmp/ping_gateway_result_error")%>
+<% deleteFiles("/tmp/ping_result", "/tmp/wget_file_result") %>
+</head>
+
+<script>
+var pin_puk_result = "<% get_sim_status() %>";
+var count = "<% cfg_get("sim_pin_count") %>";
+$$(function(){
+	if(pin_puk_result.indexOf("READY") != -1)
+	{
+		this.location.href = "BRS_03A_B_lte.html";
+
+	}
+	else if(pin_puk_result.indexOf("Blocked") != -1)
+	{
+		this.location.href = "BRS_00_01_sim_block.html";
+	}
+    else if(count < 13)
+         this.location.href = "BRS_03A_B_lte_pin.html";
+    else
+        this.location.href = "BRS_00_01_sim_block.html";
+/* 	else if(pin_puk_result.indexOf("READY") != -1)
+	{
+
+	} */
+}); 
+
+</script>
+
+<body>
+        <% form_submit("apply", "BRS_netgear_success.html", "hijack_success")  %>
+        </form>
+        <div id="container">
+            <div class="dialog-content">
+                <!-- Searching for Internet -->
+                <div id="card-searching-internet" class="install-card clearfix">
+                    <img class="netgear-logo" src="images/netgear.png">
+                    <img class="orbi-logo svg-transition" src="images/orbi.png">
+        
+                    <div class="spinner"></div>
+                    <div class="desc-text"><script>document.write(bh_orbi_check_conn);</script></div>
+                </div>
+            </div>
+        </div>
+        </body>
+</html>

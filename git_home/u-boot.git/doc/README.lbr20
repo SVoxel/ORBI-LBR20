@@ -1,0 +1,31 @@
+How to build:
+=============
+
+# Please set following according to your toolchain
+#
+# Uncompressed u-boot image
+#
+$ export PATH="/PATH/TO/toolchain-arm_cortex-a7_gcc-4.8-linaro_uClibc-0.9.33.2_eabi/bin:$PATH"
+ 
+# (optional) Supress "STAGING_DIR" warning messages only
+$ export STAGING_DIR="/PATH/TO/toolchain-arm_cortex-a7_gcc-4.8-linaro_uClibc-0.9.33.2_eabi/.."
+
+# build lbr20 u-boot (hw-id : 29766182+0+256+512+2x2+2x2+2x2+1) :
+$ make CROSS_COMPILE=arm-openwrt-linux-uclibcgnueabi- hw29766182p0p256p512p2x2p2x2p2x2p1_config
+$ verbose=1 VERSION_CODE='Chaos Calmer 15.05.1' REVISION='r35193' make HOSTCC=arm-openwrt-linux-uclibcgnueabi-gcc HOSTSTRIP=true CROSS_COMPILE=arm-openwrt-linux-uclibcgnueabi-
+$ cp u-boot openwrt-ipq40xx-u-boot-stripped.elf
+$ sstrip openwrt-ipq40xx-u-boot-stripped.elf
+
+U-Boot image is "openwrt-ipq40xx-u-boot-stripped.elf".
+
+Steps to upgrade "openwrt-ipq40xx-u-boot-stripped.elf" :
+=============================================
+
+(IPQ40xx) # setenv machid 8010001
+(IPQ40xx) # setenv ipaddr 192.168.1.1 && setenv serverip 192.168.1.10
+(IPQ40xx) # tftpboot 0x84000000 openwrt-ipq40xx-u-boot-stripped.elf
+(IPQ40xx) # crc32 0x84000000 ${filesize}
+(IPQ40xx) # imgaddr=0x84000000 && source $imgaddr:script
+(IPQ40xx) # reset
+
+(IPQ40xx) # run delenv

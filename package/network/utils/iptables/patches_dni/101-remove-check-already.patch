@@ -1,0 +1,28 @@
+--- a/libxtables/xtables.c	2020-10-31 20:27:07.000000000 +0300
++++ b/libxtables/xtables.c	2020-11-16 22:30:31.000000000 +0300
+@@ -968,12 +968,6 @@
+ 	struct xtables_match **pos;
+ 	bool seen_myself = false;
+ 
+-	if (me->next) {
+-		fprintf(stderr, "%s: match \"%s\" already registered\n",
+-			xt_params->program_name, me->name);
+-		exit(1);
+-	}
+-
+ 	if (me->version == NULL) {
+ 		fprintf(stderr, "%s: match %s<%u> is missing a version\n",
+ 		        xt_params->program_name, me->name, me->revision);
+@@ -1152,12 +1146,6 @@
+ 	struct xtables_target **pos;
+ 	bool seen_myself = false;
+ 
+-	if (me->next) {
+-		fprintf(stderr, "%s: target \"%s\" already registered\n",
+-			xt_params->program_name, me->name);
+-		exit(1);
+-	}
+-
+ 	if (me->version == NULL) {
+ 		fprintf(stderr, "%s: target %s<%u> is missing a version\n",
+ 		        xt_params->program_name, me->name, me->revision);

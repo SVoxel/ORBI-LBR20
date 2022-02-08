@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+
+<head>
+<!-- <meta http-equiv="refresh" content="30; url=BRS_01_check_pin_puk_wait.html" /> -->
+<% orbi_flow_head() %>
+<% hijack_language() %>
+</head>
+<script>
+    function get_ping_result()
+    {
+		var self = this;
+        $$.ajax({url:"lte_scan.txt",success:function(result){
+			console.log(result);
+            if(result == 1)
+				self.location.href="BRS_success.html";
+			else
+				self.location.href="BRS_03A_B_lte.html";
+           
+        }});
+    }
+
+	function get_scan_process()
+    {
+		var self = this;
+        $$.ajax({url:"lte_scan_process.txt",success:function(result){
+			
+            if(parseInt(result) === 0) //end
+			{
+				clearInterval(timeflag);
+				
+				get_ping_result();
+			}
+
+           
+        }});
+    }
+
+    var timeflag = setInterval("get_scan_process()", 5000);
+ 
+</script>
+<body>
+
+<div id="container">
+	<div class="dialog-content">
+		<!-- Searching for Internet -->
+		<div id="card-searching-internet" class="install-card clearfix">
+			<img class="netgear-logo" src="images/netgear.png">
+			<img class="orbi-logo svg-transition" src="images/orbi.png">
+
+			<div class="spinner"></div>
+			<div class="desc-text"><script> document.write(bh_mobile_scan)</script>...</div>
+		</div>
+	</div>
+</div>
+</body>
+
+</html>

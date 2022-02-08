@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+<% orbi_flow_head() %>
+<% hijack_language() %>
+</head>
+
+<body>
+<div id="container">
+	<div class="dialog-content">
+	<div class="install-card clearfix">
+	<img class="netgear-logo" src="images/netgear.png">
+	<div class="desc-title" style="margin-top:10%;">Unable to Register Product</div>
+	<div class="desc-text" style="font-size:14px;margin:10% 10% 15% 10%;">
+	We aren’t able to register your product at this moment. The good news is, you can still move forward with the installation process and can try registering your product again at a later time. 
+	</div>
+
+        <button id="next_btn" name="next" class="waves-effect waves-light btn button-nav margin-top-10" onclick="return goto_next()">
+        <span><script>document.write(bh_orbi_next_mark);</script></span>
+        </button>
+
+	</div>
+	</div>
+</div>
+<script>
+<% cfg_set("ssoGuiRegStatus","3") %>
+<% echo_set("4","/tmp/redirect_sso_num") %>
+var hijack_process="<% cfg_get("hijack_process") %>";
+var hijack_config_status = "<% cfg_get("hijack_config_status") %>";
+function goto_next(){
+	if(hijack_process=="3")
+		top.location.href='index.htm';
+	else if(hijack_config_status=="6")
+		this.location.href='BRS_orbi_complete.html';
+	else{ 
+		top.location.href = "to_internet_no_auth.htm";
+	}
+}
+</script>
+</BODY>
+</HTML>

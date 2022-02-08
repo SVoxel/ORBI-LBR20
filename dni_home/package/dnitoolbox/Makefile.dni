@@ -1,0 +1,2 @@
+define Package/dnitoolbox/install_dniext
+endef
