@@ -8,12 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=util-linux
-PKG_VERSION:=2.37.3
+PKG_VERSION:=2.38
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.xz
-PKG_SOURCE_URL:=@KERNEL/linux/utils/$(PKG_NAME)/v2.37
-PKG_MD5SUM:=36fe209806ede050ce124e4a2e6e66d4
+PKG_SOURCE_URL:=@KERNEL/linux/utils/$(PKG_NAME)/v2.38
+PKG_MD5SUM:=fffdc126809a6d4c1789a9efc1b96623
 PKG_CPE_ID:=cpe:/a:kernel:util-linux
 
 PKG_LICENSE:=GPL-2.0
