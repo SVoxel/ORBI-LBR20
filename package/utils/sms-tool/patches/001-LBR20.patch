@@ -19,7 +19,7 @@
  		"\t-b <baudrate> (default: 115200)\n"
 -		"\t-d <tty device> (default: /dev/ttyUSB0)\n"
 +		"\t-d <tty device> (default: /dev/ttyUSB2)\n"
- 		"\t-D debug (for ussd)\n"
+ 		"\t-D debug (for ussd and at)\n"
  		"\t-f <date/time format> (for sms/recv)\n"
  		"\t-j json output (for sms/recv)\n"
 @@ -42,7 +45,7 @@

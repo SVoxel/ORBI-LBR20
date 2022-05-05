@@ -30,7 +30,7 @@ static void usage()
 		"options:\n"
 		"\t-b <baudrate> (default: 115200)\n"
 		"\t-d <tty device> (default: /dev/ttyUSB0)\n"
-		"\t-D debug (for ussd)\n"
+		"\t-D debug (for ussd and at)\n"
 		"\t-f <date/time format> (for sms/recv)\n"
 		"\t-j json output (for sms/recv)\n"
 		"\t-R use raw input (for ussd)\n"
@@ -155,7 +155,7 @@ static void print_json_escape_char(char c1, char c2)
 		else if(c2 < ' ') printf("\\u00%02x", c2);
 		else printf("%c", c2);
 	} else {
-		printf("\\u%02x%02x", c1, c2);
+		printf("\\u%02x%02x", (unsigned char)c1, (unsigned char)c2);
 	}
 }
 
@@ -699,19 +699,29 @@ int main(int argc, char* argv[])
 		fputs("\r\n", pf);
 
 		while(fgets(buf, sizeof(buf), pfi)) {
-			if(starts_with("OK", buf))
-				break;
-			if(starts_with("ERROR", buf))
-				break;
-			if(starts_with("COMMAND NOT SUPPORT", buf))
-				break;
+			if(starts_with("OK", buf)) {
+				if (debug == 1)
+					printf("%s", buf);
+				exit(0);
+			}
+			if(starts_with("ERROR", buf)) {
+				if (debug == 1)
+					printf("%s", buf);
+				exit(1);
+			}
+			if(starts_with("COMMAND NOT SUPPORT", buf)) {
+				if (debug == 1)
+					printf("%s", buf);
+				exit(1);
+			}
 			if(starts_with("+CME ERROR", buf)) {
-				printf("%s\n", buf);
-				break;
+				if (debug == 1)
+					printf("%s", buf);
+				exit(1);
 			}
 			printf("%s", buf);
 		}
 	}
 
-	return 0;
+	exit(0);
 }
