@@ -3,7 +3,6 @@
 #
 
 # Link order matters here.
-KBUILD_CFLAGS := $(filter-out -O%,$(KBUILD_CFLAGS)) -O3
 
 obj-$(CONFIG_IP6_NF_IPTABLES) += ip6_tables.o
 obj-$(CONFIG_IP6_NF_FILTER) += ip6table_filter.o

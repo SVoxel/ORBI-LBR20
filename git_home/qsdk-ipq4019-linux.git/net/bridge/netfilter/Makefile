@@ -2,8 +2,6 @@
 # Makefile for the netfilter modules for Link Layer filtering on a bridge.
 #
 
-KBUILD_CFLAGS := $(filter-out -O%,$(KBUILD_CFLAGS)) -O3
-
 obj-$(CONFIG_NF_TABLES_BRIDGE) += nf_tables_bridge.o
 
 obj-$(CONFIG_BRIDGE_NF_EBTABLES) += ebtables.o
