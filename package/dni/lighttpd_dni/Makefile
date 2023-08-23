@@ -137,7 +137,7 @@ define Package/lighttpd_dni/install
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/files/lighttpd.init $(1)/etc/init.d/lighttpd
 	$(INSTALL_DIR) $(1)/usr/lib/lighttpd
-	for m in dirlisting openssl; do \
+	for m in dirlisting openssl h2; do \
 		$(CP) $(PKG_INSTALL_DIR)/usr/lib/lighttpd/mod_$$$${m}.so $(1)/usr/lib/lighttpd/ ; \
 	done
 	$(INSTALL_DIR) $(1)/usr/sbin
