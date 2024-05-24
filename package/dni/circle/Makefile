@@ -12,7 +12,7 @@ LOCAL_PKG_NAME_EXT:=circle
 define Package/circle
 	CATEGORY:=Bigfoot
 	TITLE:=circle parental control related files
-	DEPENDS:= +libopenssl +libpthread
+	DEPENDS:= +libopenssl-1.0.2 +libpthread
 endef
 					
 define Build/Prepare

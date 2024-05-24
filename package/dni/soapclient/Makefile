@@ -27,7 +27,7 @@ PKG_GIT_TREEISH:=$(CONFIG_SOAPCLIENT_GIT_TREEISH)
 define Package/soapclient
   SECTION:=net
   CATEGORY:=Network
-  DEPENDS:=+datalib +libopenssl
+  DEPENDS:=+datalib +libopenssl-1.0.2
   TITLE:= soapclient
 endef
 

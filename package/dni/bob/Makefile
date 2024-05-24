@@ -28,7 +28,7 @@ define Package/bob
   SECTION:=arlo
   CATEGORY:=arlo
   TITLE:=bob
-  DEPENDS:= +ntgdal +libopenssl
+  DEPENDS:= +ntgdal +libopenssl-1.0.2
 endef
 
 define Package/bob/description
