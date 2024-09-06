@@ -13,16 +13,16 @@
  static void usage()
  {
  	fprintf(stderr,
-@@ -29,7 +32,7 @@
- 		"       [options] at command\n"
+@@ -30,7 +33,7 @@
  		"options:\n"
  		"\t-b <baudrate> (default: 115200)\n"
+ 		"\t-c coding scheme (for ussd, 0 - 7BIT, 2 - UCS2, default: detect)\n"
 -		"\t-d <tty device> (default: /dev/ttyUSB0)\n"
 +		"\t-d <tty device> (default: /dev/ttyUSB2)\n"
  		"\t-D debug (for ussd and at)\n"
  		"\t-f <date/time format> (for sms/recv)\n"
  		"\t-j json output (for sms/recv)\n"
-@@ -42,7 +45,7 @@
+@@ -43,7 +46,7 @@
  
  static struct termios save_tio;
  static int port = -1;
@@ -31,10 +31,10 @@
  static const char* storage = "";
  static const char* dateformat = "%D %T";
  
-@@ -167,6 +170,12 @@
- 	int rawoutput = 0;
+@@ -169,6 +172,12 @@
  	int jsonoutput = 0;
  	int debug = 0;
+ 	int dcs = -1;
 +	struct winsize winsize;
 +	int winwidth = 80;
 +
@@ -42,9 +42,9 @@
 +	if (winsize.ws_col > 0)
 +		winwidth = winsize.ws_col;
  
- 	while ((ch = getopt(argc, argv, "b:d:Ds:f:jRr")) != -1){
+ 	while ((ch = getopt(argc, argv, "b:c:d:Ds:f:jRr")) != -1){
  		switch (ch) {
-@@ -327,8 +336,6 @@
+@@ -330,8 +339,6 @@
  						printf(",");
  					}
  					printf("{\"index\":%d,",idx[count]);
@@ -53,7 +53,7 @@
  				}
  
  				++count;
-@@ -370,22 +377,36 @@
+@@ -373,22 +380,36 @@
  				if(jsonoutput == 1) {
  					printf("\"sender\":\"%s\",",phone_str);
  				} else {
@@ -94,7 +94,7 @@
  					}
  				}
  
-@@ -436,7 +457,12 @@
+@@ -439,7 +460,12 @@
  				if(jsonoutput == 1) {
  					printf("\"}");
  				} else {
