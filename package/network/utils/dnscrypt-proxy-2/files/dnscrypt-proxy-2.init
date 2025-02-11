@@ -14,7 +14,7 @@ PORT=64153
 PROG=/usr/sbin/dnscrypt-proxy-2
 
 logmsg () {
-	txt="[$(date +'%F %T')] [DNSCRYPT] $$: $(awk '{print $1}' /proc/uptime):$*"
+	txt="[DNSCRYPT] $*, $(date +'%A, %B %d, %Y %T')"
 	echo "$txt" | tee -a $LOG_FILE
 	echo "$txt" >>/var/log/messages
 }
@@ -62,7 +62,7 @@ settime () {
 		count=$((count+1))
 		logmsg "Information: Time is not working after $count tries. Still trying to get it."
 		if [ $count -ge 30 ]; then
-			logmsg "ERROR: Time is not working after $count tries!"
+			logmsg "ERROR: Time is not working after $count tries."
 			exit 1
 		fi
 		sleep 1
