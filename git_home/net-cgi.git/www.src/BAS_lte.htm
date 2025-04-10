@@ -220,9 +220,9 @@ function loadvalue()
 	goTestApply(); */
 }
 
-function oepn_info()
+function open_info()
 {
-	window.open('lte_info.htm', 'lte_info', 'width=961,height=400,top=200,left=200,status=yes,resizable=yes');	
+	window.open('lte_info.htm', 'lte_info', 'width=961,height=400,top=200,left=200,status=yes,resizable=yes');
 }
 function change_wan_type(eve)
 {
@@ -257,13 +257,13 @@ var master="<% cfg_get("http_loginname") %>";
 if( master =="admin" ){
 document.write('<TR><TD nowrap colspan=2 align=center><input class="apply_bt" type="button" name="Apply" id="apply" value="$apply_mark" onClick="return check_lte(document.forms[0])">');
 document.write('<input class="cancel_bt" type="button" name="cancel" id="cancel" value="$cancel_mark" onClick="location.href=\'BAS_lte.htm\';">&nbsp;&nbsp;');
-document.write('<input class="common_bt" type="button" name="status" id="status" value="$con_status" onClick="oepn_info()">&nbsp;&nbsp;</TD></TR>');
+document.write('<input class="common_bt" type="button" name="status" id="status" value="$con_status" onClick="open_info()">&nbsp;&nbsp;</TD></TR>');
 }
 else
 {
 document.write('<TR><TD nowrap colspan=2 align=center><input class="apply1_bt" type="button" name="Apply" id="apply" disabled value="$apply_mark" onClick="return check_lte(document.forms[0])">');
 document.write('<input class="cancel1_bt" type="button" name="cancel" id="cancel" disabled value="$cancel_mark" onClick="location.href=\'BAS_lte.htm\';">&nbsp;&nbsp;');
-document.write('<input class="common_bt" type="button" name="status" id="status" value="$con_status" onClick="oepn_info()">&nbsp;&nbsp;</TD></TR>');
+document.write('<input class="common_bt" type="button" name="status" id="status" value="$con_status" onClick="open_info()">&nbsp;&nbsp;</TD></TR>');
 }
 </script>
 </TABLE>
